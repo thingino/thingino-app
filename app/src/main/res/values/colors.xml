@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thingino dark theme, identical to thingino-dfu and the web flasher. -->
+    <color name="background">#0D1117</color>
+    <color name="surface">#161B22</color>
+    <color name="surface_variant">#21262D</color>
+    <color name="primary">#FF8C00</color>        <!-- darkorange -->
+    <color name="primary_dark">#0D1117</color>
+    <color name="primary_container">#3D2800</color>
+    <color name="on_primary">#0D1117</color>
+    <color name="secondary">#FF8C00</color>
+    <color name="on_surface">#C9D1D9</color>
+    <color name="on_surface_variant">#8B949E</color>
+    <color name="outline">#30363D</color>
+    <color name="error">#F85149</color>
+    <color name="white">#FFFFFF</color>
+    <color name="log_background">#010409</color>
+
+    <!-- Provisioning-only additions. Kept in the same GitHub-dark family so
+         they sit correctly next to the inherited palette above. -->
+    <color name="success">#3FB950</color>
+    <color name="warning">#D29922</color>
+</resources>

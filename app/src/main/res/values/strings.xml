@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Thingino</string>
+    <string name="version_fmt">v%1$s</string>
+    <string name="help">Help</string>
+
+    <string name="hub_provision">Set Up a Camera</string>
+    <string name="hub_provision_desc">Connect a new camera to your Wi-Fi network</string>
+    <string name="hub_flash">Flash Firmware</string>
+    <string name="hub_flash_desc">Install thingino over USB, or from a remote daemon</string>
+
+    <string name="hub_cameras">Your cameras</string>
+    <string name="hub_refresh">Refresh</string>
+    <string name="hub_searching">searching…</string>
+    <string name="hub_none">No cameras found on this network</string>
+    <string name="hub_found_fmt">%1$d found</string>
+</resources>

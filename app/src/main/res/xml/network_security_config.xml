@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The camera's captive portal is plain HTTP on a fixed address, so cleartext
+     has to be allowed for it. Scoped to the two portal subnets rather than
+     opened app-wide: 172.16.0.1 is an unprovisioned camera, 100.64.1.1 is one
+     already running as its own access point. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">172.16.0.1</domain>
+        <domain includeSubdomains="false">100.64.1.1</domain>
+    </domain-config>
+</network-security-config>
