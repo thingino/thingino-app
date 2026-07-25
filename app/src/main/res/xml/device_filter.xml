@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ingenic bootrom: primary VID 0x601A -->
+    <usb-device vendor-id="24602" product-id="18288" />  <!-- 0x601A:0x4770 T20/T21 -->
+    <usb-device vendor-id="24602" product-id="49929" />  <!-- 0x601A:0xC309 T30/T31/T40 -->
+    <usb-device vendor-id="24602" product-id="24602" />  <!-- 0x601A:0x601A alt bootrom -->
+
+    <!-- Ingenic bootrom: alternate VID 0xA108 -->
+    <usb-device vendor-id="41224" product-id="49929" />  <!-- 0xA108:0xC309 -->
+
+    <!-- Ingenic firmware stage -->
+    <usb-device vendor-id="24602" product-id="34951" />  <!-- 0x601A:0x8887 -->
+    <usb-device vendor-id="41224" product-id="34951" />  <!-- 0xA108:0x8887 -->
+    <usb-device vendor-id="24602" product-id="24606" />  <!-- 0x601A:0x601E -->
+    <usb-device vendor-id="41224" product-id="24606" />  <!-- 0xA108:0x601E -->
+
+    <!-- U-Boot DFU gadget ("USB download gadget") -->
+    <usb-device vendor-id="41224" product-id="19780" />  <!-- 0xA108:0x4D44 -->
+    <usb-device vendor-id="24602" product-id="19780" />  <!-- 0x601A:0x4D44 -->
+</resources>

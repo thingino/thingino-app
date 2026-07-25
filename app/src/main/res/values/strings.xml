@@ -1,17 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Hub -->
     <string name="app_name">Thingino</string>
     <string name="version_fmt">v%1$s</string>
     <string name="help">Help</string>
-
     <string name="hub_provision">Set Up a Camera</string>
     <string name="hub_provision_desc">Connect a new camera to your Wi-Fi network</string>
     <string name="hub_flash">Flash Firmware</string>
     <string name="hub_flash_desc">Install thingino over USB, or from a remote daemon</string>
-
     <string name="hub_cameras">Your cameras</string>
     <string name="hub_refresh">Refresh</string>
     <string name="hub_searching">searching…</string>
     <string name="hub_none">No cameras found on this network</string>
     <string name="hub_found_fmt">%1$d found</string>
+    <string name="hub_provision_unsupported">Setting up a camera needs Android 10 or later. Flashing still works on this device.</string>
+
+    <!-- Shared across both flows -->
+    <string name="settings">Settings</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="screen_dfu">Flash Firmware</string>
+    <string name="screen_provision">Set Up a Camera</string>
+
+    <!-- Flashing -->
+    <string name="status_disconnected">No device connected</string>
+    <string name="btn_read">READ</string>
+    <string name="btn_write">WRITE</string>
+    <string name="btn_diag">Info / Diag</string>
+    <string name="diag_title">Device Diagnostics</string>
+    <string name="custom_bootloader_title">Custom bootloader (SPL / U-Boot)</string>
+    <string name="btn_bootstrap">Bootstrap Device</string>
+    <string name="btn_sel_spl">SPL</string>
+    <string name="btn_sel_uboot">U-Boot</string>
+    <string name="btn_clear_custom">Clear</string>
+    <string name="custom_blob_bundled">SPL: bundled\nU-Boot: bundled</string>
+    <string name="mode_local_usb">Local USB</string>
+    <string name="mode_remote">Remote</string>
+    <string name="hint_host">Host</string>
+    <string name="hint_port">5050</string>
+    <string name="btn_connect">Connect</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="status_dfu_gadget">U-Boot DFU gadget ready</string>
+    <string name="settings_backend">Flashing backend</string>
+    <string name="settings_verify">Verify after write</string>
+    <string name="settings_verify_desc">Read the flash back and compare (slower)</string>
+    <string name="settings_reboot">Reboot after flashing</string>
+    <string name="settings_reboot_desc">Reset and boot into the new image</string>
+    <string name="settings_dfu_debug">Debug logging</string>
+    <string name="settings_dfu_debug_desc">Verbose libtdfu diagnostics in the log</string>
+    <string name="release_title">Flash a prebuilt thingino release</string>
+    <string name="release_show_all">Show all devices (not just my SoC)</string>
+    <string name="release_flash">Flash</string>
+    <string name="settings_releases">Prebuilt releases</string>
+    <string name="settings_releases_desc">Show the thingino release picker on the main screen</string>
+    <string name="settings_advanced">Custom SPL / U-Boot</string>
+    <string name="settings_advanced_desc">Show the custom bootloader card on the main screen</string>
+
+    <!-- Provisioning -->
+    <string name="status_no_camera">No camera connected</string>
+    <string name="status_searching">Searching for THINGINO-* access point…</string>
+    <string name="status_connected">Connected to camera portal</string>
+    <string name="status_saving">Sending configuration…</string>
+    <string name="status_rebooting">Camera rebooting, waiting for it to join…</string>
+    <string name="status_discovering">Browsing the network…</string>
+    <string name="build_fmt">%1$s\n%2$s</string>
+    <string name="btn_find">Find Camera</string>
+    <string name="btn_provision">Provision</string>
+    <string name="btn_discover">Find on network</string>
+    <string name="wifi_title">Wi-Fi Network</string>
+    <string name="ssid_manual">Enter manually…</string>
+    <string name="hint_ssid">Network name (SSID)</string>
+    <string name="hint_pass">Password</string>
+    <string name="wifi_cleartext_warning">Sent over an open access point in cleartext.</string>
+    <string name="device_title">Device Settings</string>
+    <string name="hint_hostname">Hostname</string>
+    <string name="hint_rootpass">Root password</string>
+    <string name="hint_pubkey">SSH public key (optional)</string>
+    <string name="device_ap_mode">Access point mode</string>
+    <string name="device_ap_mode_desc">Camera hosts its own network instead of joining one</string>
+    <string name="settings_host_title">Portal address</string>
+    <string name="settings_host_portal">Captive portal (172.16.0.1)</string>
+    <string name="settings_host_ap_mode">Camera AP mode (100.64.1.1)</string>
+    <string name="settings_provision_debug">Show debug log</string>
+    <string name="settings_provision_debug_desc">Console output at the foot of the screen</string>
 </resources>

@@ -40,5 +40,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Keeps the USB filter but not LAUNCHER: plugging in an Ingenic device
+             jumps straight here and skips the hub, which is what the person
+             holding the cable wanted. -->
+        <activity
+            android:name=".dfu.DfuActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize">
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+        </activity>
+
+        <activity
+            android:name=".provision.ProvisionActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
     </application>
 </manifest>
