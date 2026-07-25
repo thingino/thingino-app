@@ -63,8 +63,7 @@ class ProvisionActivity : AppCompatActivity() {
         setupTimezones()
         setupCollapsibleCard()
         applyDebugVisible()
-        // Seed the spinner so it reads "Enter manually…" rather than sitting
-        // blank until a scan populates it, which may never happen.
+        // Keeps the spinner hidden until a scan actually returns something.
         populateSsids(emptyList())
 
         binding.findButton.setOnClickListener { findCamera() }
@@ -113,6 +112,8 @@ class ProvisionActivity : AppCompatActivity() {
             setStatus(getString(R.string.status_connected), R.color.success)
             binding.cameraText.text = info.hostname
             binding.buildText.text = getString(R.string.build_fmt, info.imageId, info.buildId)
+            binding.cameraText.visibility = View.VISIBLE
+            binding.buildText.visibility = View.VISIBLE
             binding.hostnameInput.setText(info.hostname)
             log("Camera: ${info.hostname}  mac=${info.wlanMac}")
             log("Image:  ${info.imageId}")
@@ -258,6 +259,9 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     private fun populateSsids(nets: List<ScannedNetwork>) {
+        binding.ssidSpinner.visibility = if (nets.isEmpty()) View.GONE else View.VISIBLE
+        if (nets.isEmpty()) return
+
         val labels = mutableListOf(getString(R.string.ssid_manual))
         nets.mapTo(labels) { n ->
             val security = if (n.isOpen) "open" else n.security

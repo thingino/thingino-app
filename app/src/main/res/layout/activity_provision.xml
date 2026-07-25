@@ -14,14 +14,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="12dp"
     tools:context=".ProvisionActivity">
 
 <ScrollView
     android:layout_width="match_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:scrollbars="none">
 
 <LinearLayout
     android:layout_width="match_parent"
@@ -34,7 +35,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="12dp">
+        android:layout_marginBottom="10dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -73,7 +74,7 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="10dp"
         app:cardElevation="2dp"
         app:cardCornerRadius="8dp">
 
@@ -81,7 +82,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="12dp">
 
             <TextView
                 android:id="@+id/statusText"
@@ -99,7 +100,8 @@
                 android:textSize="14sp"
                 android:textColor="@color/primary"
                 android:textStyle="bold"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/buildText"
@@ -108,7 +110,8 @@
                 android:fontFamily="monospace"
                 android:textSize="12sp"
                 android:textColor="@color/on_surface_variant"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -118,12 +121,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:layout_marginBottom="10dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/findButton"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
             android:text="@string/btn_find"
@@ -133,7 +136,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/provisionButton"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="@string/btn_provision"
@@ -148,7 +151,7 @@
         android:id="@+id/wifiCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         app:cardElevation="2dp"
         app:cardCornerRadius="8dp">
 
@@ -156,7 +159,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="12dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -173,12 +176,13 @@
             <Spinner
                 android:id="@+id/ssidSpinner"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
 
             <EditText
                 android:id="@+id/ssidInput"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="46dp"
                 android:layout_marginTop="8dp"
                 android:hint="@string/hint_ssid"
                 android:inputType="text"
@@ -188,7 +192,7 @@
             <EditText
                 android:id="@+id/passInput"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="46dp"
                 android:layout_marginTop="8dp"
                 android:hint="@string/hint_pass"
                 android:inputType="textPassword"
@@ -214,7 +218,7 @@
         android:id="@+id/deviceCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         app:cardElevation="2dp"
         app:cardCornerRadius="8dp">
 
@@ -229,7 +233,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackground">
@@ -268,7 +272,7 @@
                 <EditText
                     android:id="@+id/hostnameInput"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="46dp"
                     android:hint="@string/hint_hostname"
                     android:inputType="text"
                     android:importantForAutofill="no"
@@ -277,7 +281,7 @@
                 <EditText
                     android:id="@+id/rootPassInput"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="46dp"
                     android:layout_marginTop="8dp"
                     android:hint="@string/hint_rootpass"
                     android:inputType="textPassword"
@@ -291,7 +295,7 @@
                     android:layout_marginTop="8dp"
                     android:hint="@string/hint_pubkey"
                     android:inputType="textMultiLine"
-                    android:maxLines="3"
+                    android:maxLines="2"
                     android:importantForAutofill="no"
                     android:fontFamily="monospace"
                     android:textSize="12sp" />
@@ -347,8 +351,8 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/discoverButton"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginBottom="12dp"
+        android:layout_height="46dp"
+        android:layout_marginBottom="10dp"
         android:text="@string/btn_discover"
         android:textSize="14sp"
         style="@style/Widget.Material3.Button.OutlinedButton" />
@@ -387,6 +391,7 @@
 
         <ScrollView
             android:id="@+id/logScroll"
+            android:scrollbars="none"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="12dp"
