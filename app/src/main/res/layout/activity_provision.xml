@@ -189,15 +189,43 @@
                 android:importantForAutofill="no"
                 android:textSize="14sp" />
 
-            <EditText
-                android:id="@+id/passInput"
+            <TextView
+                android:id="@+id/savedPassNote"
                 android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="8dp"
-                android:hint="@string/hint_pass"
-                android:inputType="textPassword"
-                android:autofillHints="password"
-                android:textSize="14sp" />
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/hint_pass_saved"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface_variant"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/passRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp">
+
+                <EditText
+                    android:id="@+id/passInput"
+                    android:layout_width="0dp"
+                    android:layout_height="46dp"
+                    android:layout_weight="1"
+                    android:hint="@string/hint_pass"
+                    android:inputType="textPassword"
+                    android:autofillHints="password"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/passToggle"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_visibility"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/wifi_show_password" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -206,23 +234,34 @@
                 android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
 
-                <CheckBox
-                    android:id="@+id/rememberCheck"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/wifi_remember"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/saveNetworkButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/wifi_save"
                     android:textSize="12sp"
-                    android:checked="true" />
+                    android:visibility="gone"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    style="@style/Widget.Thingino.Button.Outlined.Accent" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/forgetButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="34dp"
                     android:text="@string/wifi_forget"
                     android:textSize="12sp"
                     android:visibility="gone"
                     android:minWidth="0dp"
+                    android:minHeight="0dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     style="@style/Widget.Thingino.Button.Outlined" />
@@ -317,17 +356,34 @@
                     android:autofillHints="newPassword"
                     android:textSize="14sp" />
 
-                <EditText
-                    android:id="@+id/pubkeyInput"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/hint_pubkey"
-                    android:inputType="textMultiLine"
-                    android:maxLines="2"
-                    android:importantForAutofill="no"
-                    android:fontFamily="monospace"
-                    android:textSize="12sp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <EditText
+                        android:id="@+id/pubkeyInput"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/hint_pubkey"
+                        android:inputType="textMultiLine"
+                        android:maxLines="2"
+                        android:importantForAutofill="no"
+                        android:fontFamily="monospace"
+                        android:textSize="12sp" />
+
+                    <ImageButton
+                        android:id="@+id/pubkeyPickButton"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="4dp"
+                        android:src="@drawable/ic_folder_open"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/hint_pubkey_pick" />
+                </LinearLayout>
 
                 <Spinner
                     android:id="@+id/timezoneSpinner"

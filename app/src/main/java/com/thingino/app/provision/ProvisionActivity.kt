@@ -7,7 +7,10 @@ import android.Manifest
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
+import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -39,6 +42,15 @@ class ProvisionActivity : AppCompatActivity() {
     private var scanned: List<ScannedNetwork> = emptyList()
 
     private lateinit var savedNetworks: SavedNetworks
+
+    /**
+     * Passphrase behind a selected saved network. Held rather than shown: the
+     * user picked it by name and does not need to see it again, and an
+     * unnecessarily populated field is one more thing to shoulder-surf or edit
+     * by accident. Typing in the password field overrides it.
+     */
+    private var selectedSavedPassword: String? = null
+    private var passwordVisible = false
     /** Spinner rows after the leading "Enter manually" entry. */
     private var pickerRows: List<PickerRow> = emptyList()
 
@@ -48,6 +60,10 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     private var pendingPermission: CompletableDeferred<Boolean>? = null
+
+    private val pubkeyPicker = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> uri?.let { loadPubkey(it) } }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -74,6 +90,7 @@ class ProvisionActivity : AppCompatActivity() {
         setupCollapsibleCard()
         applyDebugVisible()
         populateSsids(emptyList())
+        applyPassRowVisible()
 
         binding.findButton.setOnClickListener { findCamera() }
         binding.provisionButton.setOnClickListener { provision() }
@@ -89,6 +106,21 @@ class ProvisionActivity : AppCompatActivity() {
         }
 
         binding.forgetButton.setOnClickListener { forgetSelected() }
+        binding.saveNetworkButton.setOnClickListener { saveCurrentNetwork() }
+        binding.passToggle.setOnClickListener { togglePasswordVisible() }
+        binding.pubkeyPickButton.setOnClickListener { pubkeyPicker.launch("*/*") }
+
+        // Save only makes sense once there is something to save.
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun afterTextChanged(e: Editable?) {
+                if (binding.passInput.text.isNotEmpty()) selectedSavedPassword = null
+                applySaveVisible()
+            }
+        }
+        binding.ssidInput.addTextChangedListener(watcher)
+        binding.passInput.addTextChangedListener(watcher)
 
         log("Ready. The camera must be in portal mode, which lasts 10 minutes from boot.")
     }
@@ -158,7 +190,8 @@ class ProvisionActivity : AppCompatActivity() {
         }
 
         val ssid = binding.ssidInput.text.toString().trim()
-        val pass = binding.passInput.text.toString()
+        val typed = binding.passInput.text.toString()
+        val pass = if (typed.isEmpty()) selectedSavedPassword.orEmpty() else typed
         val hostname = binding.hostnameInput.text.toString().trim()
         val rootPass = binding.rootPassInput.text.toString()
 
@@ -183,11 +216,6 @@ class ProvisionActivity : AppCompatActivity() {
                 apMode = binding.apModeSwitch.isChecked,
             )
             c.save(req)
-
-            if (binding.rememberCheck.isChecked) {
-                savedNetworks.save(SavedNetwork(ssid, pass))
-                log("Remembered $ssid for next time.")
-            }
 
             log("Configuration accepted. Camera reboots in 2 seconds.")
             log(
@@ -316,16 +344,123 @@ class ProvisionActivity : AppCompatActivity() {
         when (row) {
             is PickerRow.Saved -> {
                 binding.ssidInput.setText(row.network.ssid)
-                binding.passInput.setText(row.network.password)
-                binding.rememberCheck.isChecked = true
+                binding.passInput.setText("")
+                selectedSavedPassword = row.network.password
                 binding.forgetButton.visibility = View.VISIBLE
+                applyPassRowVisible()
             }
             is PickerRow.Scanned -> {
                 binding.ssidInput.setText(row.network.ssid)
+                clearSavedPassword()
                 binding.forgetButton.visibility = View.GONE
             }
-            null -> binding.forgetButton.visibility = View.GONE
+            null -> {
+                clearSavedPassword()
+                binding.forgetButton.visibility = View.GONE
+            }
         }
+    }
+
+    private fun clearSavedPassword() {
+        selectedSavedPassword = null
+        applyPassRowVisible()
+    }
+
+    /**
+     * With a saved network chosen there is nothing to type and nothing to
+     * save, so the whole row goes and a status line takes its place. Forget is
+     * the way back: it clears the selection and the field returns, which also
+     * covers a passphrase that has gone stale. That matters because `save`
+     * reports success either way, so a wrong passphrase fails silently.
+     */
+    private fun applyPassRowVisible() {
+        val usingSaved = selectedSavedPassword != null
+        binding.passRow.visibility = if (usingSaved) View.GONE else View.VISIBLE
+        binding.savedPassNote.visibility = if (usingSaved) View.VISIBLE else View.GONE
+        applySaveVisible()
+    }
+
+    /**
+     * Present as soon as the form is in use, but only live when there is
+     * genuinely something new to store: a selected saved network, or one
+     * re-entered unchanged, leaves it greyed rather than removing it, so the
+     * row does not jump around while typing.
+     */
+    private fun applySaveVisible() {
+        val ssid = binding.ssidInput.text.toString().trim()
+        val typed = binding.passInput.text.toString()
+        val existing = savedNetworks.find(ssid)
+        val unchanged = existing != null && existing.password == typed
+
+        // Nothing to save while a stored network is in use.
+        binding.saveNetworkButton.visibility =
+            if (ssid.isEmpty() || selectedSavedPassword != null) View.GONE else View.VISIBLE
+        binding.saveNetworkButton.isEnabled =
+            ssid.isNotEmpty() && typed.isNotEmpty() && !unchanged
+    }
+
+    private fun saveCurrentNetwork() {
+        val ssid = binding.ssidInput.text.toString().trim()
+        val typed = binding.passInput.text.toString()
+        val pass = if (typed.isEmpty()) selectedSavedPassword.orEmpty() else typed
+        if (ssid.isEmpty() || pass.isEmpty()) return
+        savedNetworks.save(SavedNetwork(ssid, pass))
+        log(getString(R.string.wifi_saved_toast_fmt, ssid))
+        populateSsids(scanned)
+        binding.forgetButton.visibility = View.VISIBLE
+        applySaveVisible()
+    }
+
+    /**
+     * Changing inputType resets the typeface, so restore it and put the cursor
+     * back where it was; otherwise revealing a passphrase jumps to monospace
+     * and sends the caret to position zero mid-edit.
+     */
+    private fun togglePasswordVisible() {
+        val field = binding.passInput
+        val face = field.typeface
+        val at = field.selectionStart
+        passwordVisible = !passwordVisible
+
+        field.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+            if (passwordVisible) {
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            } else {
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+        field.typeface = face
+        field.setSelection(at.coerceIn(0, field.text.length))
+
+        binding.passToggle.setImageResource(
+            if (passwordVisible) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+        )
+        binding.passToggle.contentDescription = getString(
+            if (passwordVisible) R.string.wifi_hide_password else R.string.wifi_show_password
+        )
+    }
+
+    /** Accepts an id_*.pub file; the portal writes it to authorized_keys verbatim. */
+    private fun loadPubkey(uri: Uri) {
+        val text = runCatching {
+            contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?.toString(Charsets.UTF_8)
+        }.getOrNull()
+
+        if (text.isNullOrBlank()) {
+            warn("Could not read that file.")
+            return
+        }
+        if (text.length > MAX_PUBKEY_BYTES) {
+            warn("That file is too large to be a public key. Did you pick the private one?")
+            return
+        }
+        val key = text.trim().lines().firstOrNull { it.isNotBlank() }.orEmpty()
+        if (!key.startsWith("ssh-") && !key.startsWith("ecdsa-")) {
+            warn("That does not look like an SSH public key.")
+            return
+        }
+        binding.pubkeyInput.setText(key)
+        log("Loaded public key (${key.substringBefore(' ')}, ${key.length} chars)")
     }
 
     private fun forgetSelected() {
@@ -333,7 +468,7 @@ class ProvisionActivity : AppCompatActivity() {
         if (ssid.isEmpty()) return
         savedNetworks.forget(ssid)
         binding.passInput.setText("")
-        binding.rememberCheck.isChecked = false
+        clearSavedPassword()
         log("Forgot saved network $ssid")
         populateSsids(scanned)
         binding.ssidSpinner.setSelection(0)
@@ -460,5 +595,6 @@ class ProvisionActivity : AppCompatActivity() {
         private const val PREFS_NAME = "tprov_prefs"
         private const val PREF_DEBUG = "show_debug_log"
         private const val PREF_HOST = "portal_host"
+        private const val MAX_PUBKEY_BYTES = 16 * 1024
     }
 }
