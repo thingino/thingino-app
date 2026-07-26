@@ -38,7 +38,7 @@ ANDROID_NDK=/path/to/ndk scripts/build-android-deps.sh
 
 # here
 ./gradlew assembleDebug \
-  -PtdfuDepsFile=../thingino-dfu/dist/thingino-dfu-android-deps-1.5.35.tar.gz
+  -PtdfuDepsFile=../thingino-dfu/dist/thingino-dfu-android-deps-1.5.36.tar.gz
 ```
 
 Release builds need the signing keystore at `thingino-release.jks` plus
