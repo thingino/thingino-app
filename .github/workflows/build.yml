@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # full history + tags so `git describe` resolves the version
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # No NDK, no CMake, no libusb. The native side arrives prebuilt from
+      # thingino-dfu's release, pinned by tdfuDepsVersion in gradle.properties.
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > thingino-release.jks
+
+      - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease lintRelease
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/thingino-android.apk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: thingino-android
+          path: dist/thingino-android.apk
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            artifacts/thingino-android/*.apk \
+            --generate-notes

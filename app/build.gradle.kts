@@ -3,6 +3,21 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Version from the latest tag, same derivation thingino-dfu uses. stderr is
+// deliberately not captured, so git's "fatal: no names found" on a tagless or
+// shallow checkout cannot become the version.
+val computedVersionName: String = run {
+    try {
+        val p = ProcessBuilder("git", "describe", "--tags", "--abbrev=0")
+            .directory(rootProject.projectDir)
+            .start()
+        val out = p.inputStream.bufferedReader().readText().trim()
+        if (p.waitFor() == 0 && out.matches(Regex("^v?[0-9].*"))) out.removePrefix("v") else "0.1.0"
+    } catch (e: Exception) {
+        "0.1.0"
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Native dependencies from thingino-dfu
 //
@@ -15,8 +30,9 @@ plugins {
 // unreleased libtdfu without cutting a tag. Otherwise it downloads the pinned
 // release.
 // ---------------------------------------------------------------------------
-val tdfuDepsVersion = providers.gradleProperty("tdfuDepsVersion").getOrElse("1.5.34")
-val tdfuDepsFile = providers.gradleProperty("tdfuDepsFile").orNull
+val tdfuDepsVersion = providers.gradleProperty("tdfuDepsVersion").getOrElse("1.5.35")
+val tdfuDepsRepo = providers.gradleProperty("tdfuDepsRepo").getOrElse("gtxaspec/thingino-dfu")
+val tdfuDepsFile = providers.gradleProperty("tdfuDepsFile").orNull?.takeIf { it.isNotBlank() }
 
 val depsRoot = layout.buildDirectory.dir("tdfu-deps")
 
@@ -40,7 +56,7 @@ val fetchTdfuDeps = tasks.register("fetchTdfuDeps") {
                     "to download the pinned release instead."
             )
             else -> {
-                val url = "https://github.com/gtxaspec/thingino-dfu/releases/download/" +
+                val url = "https://github.com/$tdfuDepsRepo/releases/download/" +
                     "v$tdfuDepsVersion/thingino-dfu-android-deps-$tdfuDepsVersion.tar.gz"
                 if (!cached.isFile) {
                     cached.parentFile.mkdirs()
@@ -92,7 +108,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = computedVersionName
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
