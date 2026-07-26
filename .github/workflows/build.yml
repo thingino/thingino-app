@@ -20,7 +20,7 @@ jobs:
           java-version: 17
 
       # No NDK, no CMake, no libusb. The native side arrives prebuilt from
-      # thingino-dfu's release, pinned by tdfuDepsVersion in gradle.properties.
+      # thingino-dfu's release, pinned by libtdfuVersion in gradle.properties.
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > thingino-release.jks
 

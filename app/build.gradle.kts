@@ -24,41 +24,41 @@ val computedVersionName: String = run {
 // This repo has no C toolchain. Everything native arrives prebuilt in one
 // tarball: libtdfu_jni.so per ABI (the JNI bridge, libtdfu, and a statically
 // linked libusb) plus the tpl.bin/uboot.bin bootstrap blobs. Produced there by
-// scripts/build-android-deps.sh.
+// scripts/build-libtdfu-android.sh.
 //
-// Set -PtdfuDepsFile to build against a local tarball, which is how you test an
+// Set -PlibtdfuFile to build against a local tarball, which is how you test an
 // unreleased libtdfu without cutting a tag. Otherwise it downloads the pinned
 // release.
 // ---------------------------------------------------------------------------
-val tdfuDepsVersion = providers.gradleProperty("tdfuDepsVersion").getOrElse("1.5.35")
+val libtdfuVersion = providers.gradleProperty("libtdfuVersion").getOrElse("1.5.37")
 // Releases are published from upstream, not the gtxaspec dev fork.
-val tdfuDepsRepo = providers.gradleProperty("tdfuDepsRepo").getOrElse("wltechblog/thingino-dfu")
-val tdfuDepsFile = providers.gradleProperty("tdfuDepsFile").orNull?.takeIf { it.isNotBlank() }
+val libtdfuRepo = providers.gradleProperty("libtdfuRepo").getOrElse("wltechblog/thingino-dfu")
+val libtdfuFile = providers.gradleProperty("libtdfuFile").orNull?.takeIf { it.isNotBlank() }
 
-val depsRoot = layout.buildDirectory.dir("tdfu-deps")
+val depsRoot = layout.buildDirectory.dir("libtdfu")
 
-val fetchTdfuDeps = tasks.register("fetchTdfuDeps") {
-    description = "Unpacks the prebuilt libtdfu_jni.so and bootstrap blobs."
+val fetchLibtdfu = tasks.register("fetchLibtdfu") {
+    description = "Unpacks libtdfu-android: libtdfu_jni.so per ABI plus the bootstrap blobs."
     val out = depsRoot.get().asFile
-    val localTarball = tdfuDepsFile?.let { rootProject.file(it) }
-    val cached = File(out, "thingino-dfu-android-deps-$tdfuDepsVersion.tar.gz")
+    val localTarball = libtdfuFile?.let { rootProject.file(it) }
+    val cached = File(out, "libtdfu-android-$libtdfuVersion.tar.gz")
 
     // A local tarball is a real input, so a rebuilt libtdfu re-triggers this.
     if (localTarball != null) inputs.file(localTarball).withPathSensitivity(PathSensitivity.NONE)
-    inputs.property("version", tdfuDepsVersion)
+    inputs.property("version", libtdfuVersion)
     outputs.dir(out)
 
     doLast {
         val tarball = when {
             localTarball != null && localTarball.isFile -> localTarball
             localTarball != null -> throw GradleException(
-                "tdfuDepsFile points at $localTarball, which does not exist. Run " +
-                    "scripts/build-android-deps.sh in thingino-dfu, or unset the property " +
+                "libtdfuFile points at $localTarball, which does not exist. Run " +
+                    "scripts/build-libtdfu-android.sh in thingino-dfu, or unset the property " +
                     "to download the pinned release instead."
             )
             else -> {
-                val url = "https://github.com/$tdfuDepsRepo/releases/download/" +
-                    "v$tdfuDepsVersion/thingino-dfu-android-deps-$tdfuDepsVersion.tar.gz"
+                val url = "https://github.com/$libtdfuRepo/releases/download/" +
+                    "v$libtdfuVersion/libtdfu-android-$libtdfuVersion.tar.gz"
                 if (!cached.isFile) {
                     cached.parentFile.mkdirs()
                     logger.lifecycle("Downloading $url")
@@ -90,9 +90,9 @@ val fetchTdfuDeps = tasks.register("fetchTdfuDeps") {
         val abis = File(out, "jniLibs").listFiles()?.filter { it.isDirectory } ?: emptyList()
         val blobs = File(out, "assets/firmware").walkTopDown().count { it.extension == "bin" }
         if (abis.isEmpty() || blobs == 0) {
-            throw GradleException("tdfu deps look wrong: ${abis.size} ABIs, $blobs blobs")
+            throw GradleException("libtdfu tarball looks wrong: ${abis.size} ABIs, $blobs blobs")
         }
-        logger.lifecycle("tdfu deps $tdfuDepsVersion: ${abis.size} ABIs, $blobs blobs")
+        logger.lifecycle("libtdfu $libtdfuVersion: ${abis.size} ABIs, $blobs blobs")
     }
 }
 
@@ -169,7 +169,7 @@ android {
     }
 }
 
-tasks.named("preBuild").configure { dependsOn(fetchTdfuDeps) }
+tasks.named("preBuild").configure { dependsOn(fetchLibtdfu) }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")

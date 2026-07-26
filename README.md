@@ -27,18 +27,18 @@ No NDK, no CMake, no libusb. Everything native arrives prebuilt from
 [thingino-dfu](https://github.com/wltechblog/thingino-dfu): `libtdfu_jni.so` per
 ABI (the JNI bridge, libtdfu, and a statically linked libusb) plus the
 `firmware/` bootstrap blobs, in one tarball attached to its releases. The
-version is pinned by `tdfuDepsVersion` in `gradle.properties`.
+version is pinned by `libtdfuVersion` in `gradle.properties`.
 
 To build against an unreleased libtdfu, produce the tarball locally and point at
 it:
 
 ```
 # in a thingino-dfu checkout
-ANDROID_NDK=/path/to/ndk scripts/build-android-deps.sh
+ANDROID_NDK=/path/to/ndk scripts/build-libtdfu-android.sh
 
 # here
 ./gradlew assembleDebug \
-  -PtdfuDepsFile=../thingino-dfu/dist/thingino-dfu-android-deps-1.5.36.tar.gz
+  -PlibtdfuFile=../thingino-dfu/dist/libtdfu-android-1.5.37.tar.gz
 ```
 
 Release builds need the signing keystore at `thingino-release.jks` plus
