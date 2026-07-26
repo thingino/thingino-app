@@ -162,6 +162,7 @@ class ProvisionActivity : AppCompatActivity() {
             binding.hostnameInput.setText(info.hostname)
             log("Camera: ${info.hostname}  mac=${info.wlanMac}")
             log(if (c.secure) "Transport: HTTPS" else "Transport: HTTP (camera has no TLS portal)")
+            applyTransportWarning(c.secure, info.acceptsHashedSecrets)
             log(
                 if (info.acceptsHashedSecrets) {
                     "Credentials: derived on this phone, plaintext never sent."
@@ -383,6 +384,23 @@ class ProvisionActivity : AppCompatActivity() {
      * covers a passphrase that has gone stale. That matters because `save`
      * reports success either way, so a wrong passphrase fails silently.
      */
+    /**
+     * The cleartext warning is about the transport, so it only belongs on
+     * screen when the transport is actually cleartext. Over TLS it would be
+     * simply untrue; over HTTP with derived credentials it is true but
+     * narrower, since the derived network key still lets someone join.
+     */
+    private fun applyTransportWarning(secure: Boolean, hashed: Boolean) {
+        if (secure) {
+            binding.wifiWarning.visibility = View.GONE
+            return
+        }
+        binding.wifiWarning.visibility = View.VISIBLE
+        binding.wifiWarning.setText(
+            if (hashed) R.string.wifi_cleartext_derived else R.string.wifi_cleartext_warning
+        )
+    }
+
     private fun applyPassRowVisible() {
         val usingSaved = selectedSavedPassword != null
         binding.passRow.visibility = if (usingSaved) View.GONE else View.VISIBLE
