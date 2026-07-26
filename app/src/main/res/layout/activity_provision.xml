@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/screen_provision"
                 android:textSize="22sp"
-                android:textStyle="bold"
+                android:fontFamily="@font/montserrat_medium"
                 android:textColor="@color/primary" />
 
             <TextView
@@ -99,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
                 android:textColor="@color/primary"
-                android:textStyle="bold"
+                android:fontFamily="@font/montserrat_medium"
                 android:layout_marginTop="4dp"
                 android:visibility="gone" />
 
@@ -166,7 +166,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/wifi_title"
                 android:textSize="14sp"
-                android:textStyle="bold"
+                android:fontFamily="@font/montserrat_medium"
                 android:textColor="@color/primary"
                 android:layout_marginBottom="8dp" />
 
@@ -244,7 +244,7 @@
                     android:layout_weight="1"
                     android:text="@string/device_title"
                     android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:fontFamily="@font/montserrat_medium"
                     android:textColor="@color/primary" />
 
                 <TextView

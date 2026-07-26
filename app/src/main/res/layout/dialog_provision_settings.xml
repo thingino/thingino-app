@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/settings_host_title"
-        android:textStyle="bold"
+        android:fontFamily="@font/montserrat_medium"
         android:textColor="@color/on_surface" />
 
     <RadioGroup

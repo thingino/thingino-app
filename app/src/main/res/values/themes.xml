@@ -32,7 +32,7 @@
         <item name="android:textColor">@color/btn_filled_text</item>
         <item name="strokeColor">@color/btn_filled_stroke</item>
         <item name="strokeWidth">1dp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/montserrat_regular</item>
         <item name="cornerRadius">8dp</item>
         <item name="rippleColor">@color/on_primary</item>
     </style>
@@ -51,7 +51,7 @@
         <item name="android:textColor">@color/btn_accent_text</item>
         <item name="strokeColor">@color/btn_accent_stroke</item>
         <item name="backgroundTint">@color/btn_accent_bg</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/montserrat_regular</item>
         <item name="rippleColor">@color/primary</item>
     </style>
 </resources>
