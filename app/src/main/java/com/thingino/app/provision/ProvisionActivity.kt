@@ -52,6 +52,14 @@ class ProvisionActivity : AppCompatActivity() {
      */
     private var selectedSavedPassword: String? = null
     private var passwordVisible = false
+
+    /**
+     * Set while the picker is rebuilt. Assigning an adapter resets the Spinner
+     * to position 0, which fires onItemSelected and would otherwise look like
+     * the user choosing "Enter manually", discarding a selected saved network
+     * and its passphrase.
+     */
+    private var rebuildingPicker = false
     /** Spinner rows after the leading "Enter manually" entry. */
     private var pickerRows: List<PickerRow> = emptyList()
 
@@ -100,6 +108,7 @@ class ProvisionActivity : AppCompatActivity() {
 
         binding.ssidSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                if (rebuildingPicker) return
                 onPickerSelected(pos)
             }
 
@@ -208,6 +217,10 @@ class ProvisionActivity : AppCompatActivity() {
 
         if (ssid.isEmpty()) {
             warn("Enter the network name the camera should join.")
+            return@launch
+        }
+        if (pass.isEmpty()) {
+            warn("Enter the passphrase for $ssid.")
             return@launch
         }
         if (rootPass.isEmpty()) {
@@ -345,9 +358,21 @@ class ProvisionActivity : AppCompatActivity() {
                 )
             }
         }
+        // Keep whatever was chosen before: this runs again after the camera
+        // scan lands, and a rebuild must not silently undo the user's pick.
+        val previous = binding.ssidInput.text.toString().trim()
+        rebuildingPicker = true
         binding.ssidSpinner.adapter = ArrayAdapter(
             this, android.R.layout.simple_spinner_dropdown_item, labels
         )
+        val restored = pickerRows.indexOfFirst { ssidOf(it) == previous }
+        binding.ssidSpinner.setSelection(if (restored >= 0) restored + 1 else 0)
+        binding.ssidSpinner.post { rebuildingPicker = false }
+    }
+
+    private fun ssidOf(row: PickerRow): String = when (row) {
+        is PickerRow.Saved -> row.network.ssid
+        is PickerRow.Scanned -> row.network.ssid
     }
 
     private fun onPickerSelected(position: Int) {
