@@ -42,6 +42,13 @@ class ProvisionActivity : AppCompatActivity() {
     private var scanned: List<ScannedNetwork> = emptyList()
     private var cameraInfo: CameraInfo? = null
 
+    /**
+     * Set once a camera has accepted its configuration. The form is stale from
+     * that moment: the camera is rebooting, the portal network has been
+     * released, and nothing typed afterwards can reach it.
+     */
+    private var provisioned = false
+
     private lateinit var savedNetworks: SavedNetworks
 
     /**
@@ -160,6 +167,11 @@ class ProvisionActivity : AppCompatActivity() {
             return@launch
         }
 
+        if (provisioned) {
+            provisioned = false
+            setFormEnabled(true)
+        }
+
         busy(true, getString(R.string.status_searching))
         try {
             log("Requesting a ${PortalWifi.SSID_PREFIX}* network via the system picker...")
@@ -256,7 +268,8 @@ class ProvisionActivity : AppCompatActivity() {
                     "back in portal mode."
             )
             setStatus(getString(R.string.status_rebooting), R.color.warning)
-            binding.provisionButton.isEnabled = false
+            provisioned = true
+            setFormEnabled(false)
 
             portalWifi.release()
             client = null
@@ -691,7 +704,17 @@ class ProvisionActivity : AppCompatActivity() {
 
         binding.findButton.isEnabled = !busy
         binding.discoverButton.isEnabled = !busy
-        binding.provisionButton.isEnabled = !busy && client != null
+        binding.provisionButton.isEnabled = !busy && client != null && !provisioned
+    }
+
+    private fun setFormEnabled(enabled: Boolean) {
+        listOf(
+            binding.ssidSpinner, binding.ssidInput, binding.passInput, binding.passToggle,
+            binding.saveNetworkButton, binding.forgetButton,
+            binding.hostnameInput, binding.rootPassInput, binding.rootPassToggle,
+            binding.pubkeyInput, binding.pubkeyPickButton,
+            binding.timezoneSpinner, binding.apModeSwitch, binding.deviceHeader,
+        ).forEach { it.isEnabled = enabled }
     }
 
     private fun setStatus(text: String, colorRes: Int) {
