@@ -180,4 +180,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     // Saved Wi-Fi passphrases are encrypted at rest under a Keystore master key.
     implementation("androidx.security:security-crypto:1.0.0")
+    // SHA-512 crypt for the root password. Not in the platform, and hand
+    // rolling SHA-crypt's final permutation step is a good way to lock
+    // yourself out of a camera.
+    implementation("commons-codec:commons-codec:1.16.0")
+
+    testImplementation("junit:junit:4.13.2")
 }

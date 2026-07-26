@@ -8,13 +8,23 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.X509TrustManager
 
 data class CameraInfo(
     val hostname: String,
     val imageId: String,
     val buildId: String,
     val wlanMac: String,
-)
+    /** What this firmware accepts. Absent on cameras predating the field. */
+    val features: List<String> = emptyList(),
+) {
+    val acceptsHashedSecrets: Boolean
+        get() = PortalClient.FEATURE_PSK in features &&
+            PortalClient.FEATURE_ROOT_HASH in features
+}
 
 data class ScannedNetwork(
     val ssid: String,
@@ -58,6 +68,9 @@ class PortalClient(
             imageId = json.optString("image_id"),
             buildId = json.optString("build_id"),
             wlanMac = json.optString("wlan_mac"),
+            features = json.optJSONArray("features")?.let { arr ->
+                (0 until arr.length()).map { arr.optString(it) }
+            }.orEmpty(),
         )
     }
 
@@ -101,12 +114,24 @@ class PortalClient(
      * looking for the camera on the target network afterwards, or by checking
      * whether its THINGINO-* AP reappeared.
      */
-    suspend fun save(req: ProvisionRequest): Unit = withContext(Dispatchers.IO) {
+    suspend fun save(req: ProvisionRequest, hashed: Boolean): Unit = withContext(Dispatchers.IO) {
         val body = buildString {
             append("hostname=").append(enc(req.hostname))
             append("&wlan_ssid=").append(enc(req.wlanSsid))
-            append("&wlan_pass=").append(enc(req.wlanPass))
-            append("&rootpass=").append(enc(req.rootPass))
+            // Derive locally when the camera says it can take the derived
+            // forms, so neither secret is on the wire in a reusable shape.
+            // Only when advertised: older firmware ignores unknown fields and
+            // would configure Wi-Fi with an empty passphrase while still
+            // reporting success.
+            if (hashed) {
+                append("&wlan_psk=")
+                    .append(enc(PortalCrypto.wpaPsk(req.wlanSsid, req.wlanPass)))
+                append("&rootpass_hash=")
+                    .append(enc(PortalCrypto.sha512Crypt(req.rootPass)))
+            } else {
+                append("&wlan_pass=").append(enc(req.wlanPass))
+                append("&rootpass=").append(enc(req.rootPass))
+            }
             append("&timezone=").append(enc(req.timezone))
             append("&rootpkey=").append(enc(req.pubkey))
             if (req.apMode) append("&wlan_ap=true")
@@ -123,11 +148,42 @@ class PortalClient(
 
     private fun post(query: String, body: String): String = request("POST", query, body)
 
+    /**
+     * Prefers HTTPS and falls back to plain HTTP.
+     *
+     * The portal serves both: 80 because captive-portal detection is HTTP by
+     * definition, 443 for clients like this one that address it directly.
+     * Older firmware serves only 80, so a failure on 443 is expected rather
+     * than exceptional, and the chosen scheme is remembered for the session.
+     */
     private fun request(method: String, query: String, body: String?): String {
+        schemes().forEach { scheme ->
+            try {
+                val text = attempt(scheme, method, query, body)
+                secure = scheme == "https"
+                chosen = scheme
+                return text
+            } catch (e: IOException) {
+                // Only worth falling back on transport failures. An HTTP status
+                // from the camera means it answered, so trying the other port
+                // would just repeat the same rejection.
+                if (scheme == "http") {
+                    throw PortalException("Could not reach the camera at $host: ${e.message}")
+                }
+            }
+        }
+        throw PortalException("Could not reach the camera at $host")
+    }
+
+    private fun schemes(): List<String> =
+        chosen?.let { listOf(it) } ?: listOf("https", "http")
+
+    private fun attempt(scheme: String, method: String, query: String, body: String?): String {
         // action is read from QUERY_STRING even on POST, where the body carries
         // only the form fields. See the parse_query call at the foot of api.cgi.
-        val url = URL("http://$host$API_PATH?$query")
+        val url = URL("$scheme://$host$API_PATH?$query")
         val conn = network.openConnection(url) as HttpURLConnection
+        if (conn is HttpsURLConnection) relaxTls(conn)
         return try {
             conn.requestMethod = method
             conn.connectTimeout = CONNECT_TIMEOUT_MS
@@ -150,11 +206,24 @@ class PortalClient(
                 throw PortalException("Camera returned HTTP $code for $query")
             }
             text
-        } catch (e: IOException) {
-            throw PortalException("Could not reach the camera at $host: ${e.message}")
         } finally {
             conn.disconnect()
         }
+    }
+
+    /**
+     * The portal's certificate is self-signed and issued for <hostname>.local
+     * while we connect by IP, so neither the chain nor the name can validate.
+     * Accepting it anyway still defeats passive capture on the open access
+     * point, which is the threat here; it does not defend against an active
+     * attacker running a rogue THINGINO access point.
+     *
+     * Scoped to this connection. Never set as the JVM default, or it would
+     * also disable validation for the release downloads in the flashing flow.
+     */
+    private fun relaxTls(conn: HttpsURLConnection) {
+        conn.sslSocketFactory = portalSslContext.socketFactory
+        conn.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
     }
 
     private fun JSONObject.failIfError() {
@@ -167,7 +236,25 @@ class PortalClient(
     // containing a literal backslash sequence can arrive altered.
     private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8")
 
+    private var chosen: String? = null
+
+    /** True once a request has completed over TLS. */
+    var secure: Boolean = false
+        private set
+
+    private val portalSslContext: SSLContext by lazy {
+        val trustAny = object : X509TrustManager {
+            override fun checkClientTrusted(c: Array<X509Certificate>?, t: String?) = Unit
+            override fun checkServerTrusted(c: Array<X509Certificate>?, t: String?) = Unit
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        }
+        SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustAny), null) }
+    }
+
     companion object {
+        const val FEATURE_PSK = "wlan_psk"
+        const val FEATURE_ROOT_HASH = "rootpass_hash"
+
         /** Portal mode. The camera's own AP mode uses 100.64.1.1 instead. */
         const val PORTAL_HOST = "172.16.0.1"
         const val AP_MODE_HOST = "100.64.1.1"

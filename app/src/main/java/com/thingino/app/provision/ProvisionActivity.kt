@@ -40,6 +40,7 @@ class ProvisionActivity : AppCompatActivity() {
     private var client: PortalClient? = null
     private var portalHost = PortalClient.PORTAL_HOST
     private var scanned: List<ScannedNetwork> = emptyList()
+    private var cameraInfo: CameraInfo? = null
 
     private lateinit var savedNetworks: SavedNetworks
 
@@ -152,6 +153,7 @@ class ProvisionActivity : AppCompatActivity() {
             client = c
 
             val info = c.getInfo()
+            cameraInfo = info
             setStatus(getString(R.string.status_connected), R.color.success)
             binding.cameraText.text = info.hostname
             binding.buildText.text = getString(R.string.build_fmt, info.imageId, info.buildId)
@@ -159,6 +161,14 @@ class ProvisionActivity : AppCompatActivity() {
             binding.buildText.visibility = View.VISIBLE
             binding.hostnameInput.setText(info.hostname)
             log("Camera: ${info.hostname}  mac=${info.wlanMac}")
+            log(if (c.secure) "Transport: HTTPS" else "Transport: HTTP (camera has no TLS portal)")
+            log(
+                if (info.acceptsHashedSecrets) {
+                    "Credentials: derived on this phone, plaintext never sent."
+                } else {
+                    "Credentials: sent as typed. This firmware cannot take derived forms."
+                }
+            )
             log("Image:  ${info.imageId}")
             log("Build:  ${info.buildId}")
 
@@ -215,7 +225,7 @@ class ProvisionActivity : AppCompatActivity() {
                 pubkey = binding.pubkeyInput.text.toString().trim(),
                 apMode = binding.apModeSwitch.isChecked,
             )
-            c.save(req)
+            c.save(req, hashed = cameraInfo?.acceptsHashedSecrets == true)
 
             log("Configuration accepted. Camera reboots in 2 seconds.")
             log(
