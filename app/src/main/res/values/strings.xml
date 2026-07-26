@@ -69,6 +69,10 @@
     <string name="btn_discover">Find on network</string>
     <string name="wifi_title">Wi-Fi Network</string>
     <string name="ssid_manual">Enter manually…</string>
+    <string name="wifi_remember">Remember this network</string>
+    <string name="wifi_forget">Forget</string>
+    <string name="wifi_saved_fmt">★ %1$s</string>
+    <string name="wifi_scanned_fmt">%1$s  (%2$d dBm, %3$s)</string>
     <string name="hint_ssid">Network name (SSID)</string>
     <string name="hint_pass">Password</string>
     <string name="wifi_cleartext_warning">Sent over an open access point in cleartext.</string>

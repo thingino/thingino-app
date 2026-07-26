@@ -199,6 +199,35 @@
                 android:autofillHints="password"
                 android:textSize="14sp" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <CheckBox
+                    android:id="@+id/rememberCheck"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/wifi_remember"
+                    android:textSize="12sp"
+                    android:checked="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/forgetButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wifi_forget"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    android:minWidth="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    style="@style/Widget.Thingino.Button.Outlined" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/wifiWarning"
                 android:layout_width="match_parent"

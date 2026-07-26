@@ -38,6 +38,15 @@ class ProvisionActivity : AppCompatActivity() {
     private var portalHost = PortalClient.PORTAL_HOST
     private var scanned: List<ScannedNetwork> = emptyList()
 
+    private lateinit var savedNetworks: SavedNetworks
+    /** Spinner rows after the leading "Enter manually" entry. */
+    private var pickerRows: List<PickerRow> = emptyList()
+
+    private sealed class PickerRow {
+        data class Saved(val network: SavedNetwork) : PickerRow()
+        data class Scanned(val network: ScannedNetwork) : PickerRow()
+    }
+
     private var pendingPermission: CompletableDeferred<Boolean>? = null
 
     private val permissionLauncher = registerForActivityResult(
@@ -58,12 +67,12 @@ class ProvisionActivity : AppCompatActivity() {
 
         portalWifi = PortalWifi(this)
         discovery = CameraDiscovery(this)
+        savedNetworks = SavedNetworks(this)
 
         binding.versionText.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME)
         setupTimezones()
         setupCollapsibleCard()
         applyDebugVisible()
-        // Keeps the spinner hidden until a scan actually returns something.
         populateSsids(emptyList())
 
         binding.findButton.setOnClickListener { findCamera() }
@@ -73,11 +82,13 @@ class ProvisionActivity : AppCompatActivity() {
 
         binding.ssidSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                scanned.getOrNull(pos - 1)?.let { binding.ssidInput.setText(it.ssid) }
+                onPickerSelected(pos)
             }
 
             override fun onNothingSelected(p: AdapterView<*>?) = Unit
         }
+
+        binding.forgetButton.setOnClickListener { forgetSelected() }
 
         log("Ready. The camera must be in portal mode, which lasts 10 minutes from boot.")
     }
@@ -173,6 +184,11 @@ class ProvisionActivity : AppCompatActivity() {
             )
             c.save(req)
 
+            if (binding.rememberCheck.isChecked) {
+                savedNetworks.save(SavedNetwork(ssid, pass))
+                log("Remembered $ssid for next time.")
+            }
+
             log("Configuration accepted. Camera reboots in 2 seconds.")
             log(
                 "Note: that is a write confirmation, not proof the passphrase is " +
@@ -258,18 +274,69 @@ class ProvisionActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * One picker over two sources: networks the user saved earlier, and
+     * networks this camera can currently hear. Saved ones come first and carry
+     * their passphrase; scanned ones only fill in the name. Hidden entirely
+     * when there is nothing to offer, since a dropdown whose only entry is
+     * "Enter manually" is a wasted row.
+     */
     private fun populateSsids(nets: List<ScannedNetwork>) {
-        binding.ssidSpinner.visibility = if (nets.isEmpty()) View.GONE else View.VISIBLE
-        if (nets.isEmpty()) return
+        val saved = savedNetworks.list()
+        // A saved network that the camera can also hear should appear once.
+        val savedSsids = saved.map { it.ssid }.toSet()
+        pickerRows = saved.map { PickerRow.Saved(it) } +
+            nets.filterNot { it.ssid in savedSsids }.map { PickerRow.Scanned(it) }
+
+        binding.ssidSpinner.visibility = if (pickerRows.isEmpty()) View.GONE else View.VISIBLE
+        if (pickerRows.isEmpty()) {
+            binding.forgetButton.visibility = View.GONE
+            return
+        }
 
         val labels = mutableListOf(getString(R.string.ssid_manual))
-        nets.mapTo(labels) { n ->
-            val security = if (n.isOpen) "open" else n.security
-            "${n.ssid}  (${n.signal} dBm, $security)"
+        pickerRows.mapTo(labels) { row ->
+            when (row) {
+                is PickerRow.Saved -> getString(R.string.wifi_saved_fmt, row.network.ssid)
+                is PickerRow.Scanned -> getString(
+                    R.string.wifi_scanned_fmt,
+                    row.network.ssid,
+                    row.network.signal,
+                    if (row.network.isOpen) "open" else row.network.security,
+                )
+            }
         }
         binding.ssidSpinner.adapter = ArrayAdapter(
             this, android.R.layout.simple_spinner_dropdown_item, labels
         )
+    }
+
+    private fun onPickerSelected(position: Int) {
+        val row = pickerRows.getOrNull(position - 1)
+        when (row) {
+            is PickerRow.Saved -> {
+                binding.ssidInput.setText(row.network.ssid)
+                binding.passInput.setText(row.network.password)
+                binding.rememberCheck.isChecked = true
+                binding.forgetButton.visibility = View.VISIBLE
+            }
+            is PickerRow.Scanned -> {
+                binding.ssidInput.setText(row.network.ssid)
+                binding.forgetButton.visibility = View.GONE
+            }
+            null -> binding.forgetButton.visibility = View.GONE
+        }
+    }
+
+    private fun forgetSelected() {
+        val ssid = binding.ssidInput.text.toString().trim()
+        if (ssid.isEmpty()) return
+        savedNetworks.forget(ssid)
+        binding.passInput.setText("")
+        binding.rememberCheck.isChecked = false
+        log("Forgot saved network $ssid")
+        populateSsids(scanned)
+        binding.ssidSpinner.setSelection(0)
     }
 
     private fun showSettingsDialog() {
