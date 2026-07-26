@@ -58,7 +58,7 @@
 
     <!-- Provisioning -->
     <string name="status_no_camera">No camera connected</string>
-    <string name="status_searching">Searching for THINGINO-* access point…</string>
+    <string name="status_searching">Searching for THINGINO access point…</string>
     <string name="status_connected">Connected to camera portal</string>
     <string name="status_saving">Sending configuration…</string>
     <string name="status_rebooting">Camera rebooting, waiting for it to join…</string>
