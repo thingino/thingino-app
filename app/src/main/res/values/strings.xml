@@ -82,6 +82,7 @@
     <string name="hint_pass_saved">Using saved passphrase</string>
     <string name="wifi_cleartext_warning">Sent over an open access point in cleartext.</string>
     <string name="wifi_cleartext_derived">Not encrypted. Passwords are derived first, but the network key is still exposed.</string>
+    <string name="preview_title">Live preview</string>
     <string name="device_title">Device Settings</string>
     <string name="hint_hostname">Hostname</string>
     <string name="hint_rootpass">Root password</string>

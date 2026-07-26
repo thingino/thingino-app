@@ -80,11 +80,29 @@ class PortalWifi(context: Context) {
         }
 
     /**
+     * Routes the whole process over the portal network.
+     *
+     * Needed for WebView, which ignores a per-connection [Network] and uses the
+     * process default, so a page on the camera would otherwise be fetched over
+     * mobile data and fail. Must be undone with [unbindProcess]: leaving it set
+     * would send every later request, including release downloads, to a network
+     * that no longer exists.
+     */
+    fun bindProcess(network: Network) {
+        cm.bindProcessToNetwork(network)
+    }
+
+    fun unbindProcess() {
+        cm.bindProcessToNetwork(null)
+    }
+
+    /**
      * Drops the request so the handset returns to its normal network. Not
      * optional: while the request is held the phone stays bound to an AP with no
      * upstream, and after `action=save` the camera reboots and the AP vanishes.
      */
     fun release() {
+        unbindProcess()
         callback?.let { cb -> runCatching { cm.unregisterNetworkCallback(cb) } }
         callback = null
     }

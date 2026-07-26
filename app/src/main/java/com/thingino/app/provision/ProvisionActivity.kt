@@ -41,6 +41,7 @@ class ProvisionActivity : AppCompatActivity() {
     private var portalHost = PortalClient.PORTAL_HOST
     private var scanned: List<ScannedNetwork> = emptyList()
     private var cameraInfo: CameraInfo? = null
+    private var portalNetwork: android.net.Network? = null
 
     /**
      * Set once a camera has accepted its configuration. The form is stale from
@@ -48,6 +49,7 @@ class ProvisionActivity : AppCompatActivity() {
      * released, and nothing typed afterwards can reach it.
      */
     private var provisioned = false
+    private var previewLoaded = false
 
     private lateinit var savedNetworks: SavedNetworks
 
@@ -125,6 +127,7 @@ class ProvisionActivity : AppCompatActivity() {
         }
 
         binding.forgetButton.setOnClickListener { forgetSelected() }
+        binding.previewHeader.setOnClickListener { togglePreview() }
         binding.saveNetworkButton.setOnClickListener { saveCurrentNetwork() }
         binding.passToggle.setOnClickListener {
             passwordVisible = toggleReveal(binding.passInput, binding.passToggle, passwordVisible)
@@ -176,6 +179,7 @@ class ProvisionActivity : AppCompatActivity() {
         try {
             log("Requesting a ${PortalWifi.SSID_PREFIX}* network via the system picker...")
             val network = portalWifi.join()
+            portalNetwork = network
             log("Joined. Binding requests to the local-only network.")
 
             val c = PortalClient(network, portalHost)
@@ -203,6 +207,7 @@ class ProvisionActivity : AppCompatActivity() {
             log("Build:  ${info.buildId}")
 
             binding.provisionButton.isEnabled = true
+            binding.previewCard.visibility = View.VISIBLE
 
             log("Asking the camera which networks it can hear...")
             scanned = c.scanNetworks()
@@ -707,6 +712,74 @@ class ProvisionActivity : AppCompatActivity() {
         binding.provisionButton.isEnabled = !busy && client != null && !provisioned
     }
 
+    private fun togglePreview() {
+        val open = binding.previewWeb.visibility == View.VISIBLE
+        binding.previewWeb.visibility = if (open) View.GONE else View.VISIBLE
+        binding.previewChevron.text = if (open) "\u25b8" else "\u25be"
+        if (!open && !previewLoaded) startPreview()
+    }
+
+    /**
+     * rwd serves a self-contained WebRTC viewer, so this only has to display
+     * it. Three things it does need:
+     *
+     * WebView ignores a per-connection Network and uses the process default,
+     * which is mobile data, so the process is bound to the portal network for
+     * the duration.
+     *
+     * rwd listens on HTTPS only, with the portal's self-signed certificate.
+     * That is not incidental: RTCPeerConnection requires a secure context in
+     * Chromium, so a plain-HTTP viewer could not negotiate at all.
+     *
+     * The page autoplays, which needs the user-gesture requirement lifted.
+     */
+    private fun startPreview() {
+        val net = portalNetwork ?: run { warn("Not connected to a camera."); return }
+        previewLoaded = true
+        portalWifi.bindProcess(net)
+
+        binding.previewWeb.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+        }
+        binding.previewWeb.webViewClient = object : android.webkit.WebViewClient() {
+            override fun onReceivedSslError(
+                view: android.webkit.WebView?,
+                handler: android.webkit.SslErrorHandler,
+                error: android.net.http.SslError?,
+            ) {
+                // Same self-signed certificate the portal serves, reached by IP.
+                if (error?.url?.contains(PREVIEW_HOST) == true) handler.proceed()
+                else handler.cancel()
+            }
+
+            override fun onReceivedHttpAuthRequest(
+                view: android.webkit.WebView?,
+                handler: android.webkit.HttpAuthHandler,
+                host: String?,
+                realm: String?,
+            ) = handler.proceed(PREVIEW_USER, PREVIEW_PASS)
+
+            override fun onReceivedError(
+                view: android.webkit.WebView?,
+                req: android.webkit.WebResourceRequest?,
+                err: android.webkit.WebResourceError?,
+            ) {
+                warn("Preview failed: ${err?.description}")
+            }
+        }
+        // Surface the page's own diagnostics; it logs ICE and SDP progress.
+        binding.previewWeb.webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
+                log("preview: ${m.message()}")
+                return true
+            }
+        }
+        log("Loading $PREVIEW_URL")
+        binding.previewWeb.loadUrl(PREVIEW_URL)
+    }
+
     private fun setFormEnabled(enabled: Boolean) {
         listOf(
             binding.ssidSpinner, binding.ssidInput, binding.passInput, binding.passToggle,
@@ -746,5 +819,9 @@ class ProvisionActivity : AppCompatActivity() {
         private const val PREF_DEBUG = "show_debug_log"
         private const val PREF_HOST = "portal_host"
         private const val MAX_PUBKEY_BYTES = 16 * 1024
+        private const val PREVIEW_HOST = "172.16.0.1"
+        private const val PREVIEW_URL = "https://172.16.0.1:8554/webrtc?debug"
+        private const val PREVIEW_USER = "thingino"
+        private const val PREVIEW_PASS = "thingino"
     }
 }

@@ -449,6 +449,64 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Live preview. raptor's rwd serves a self-contained WebRTC viewer, so the
+         page does the signalling and no media stack is needed here. Hidden
+         until a camera answers, and stays hidden on firmware without rwd. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/previewCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:visibility="gone"
+        app:cardElevation="2dp"
+        app:cardCornerRadius="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/previewHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/preview_title"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/montserrat_medium"
+                    android:textColor="@color/primary" />
+
+                <TextView
+                    android:id="@+id/previewChevron"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▸"
+                    android:textSize="16sp"
+                    android:textColor="@color/on_surface_variant"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
+
+            <!-- Fixed height, so the wrap_content parent the check warns about
+                 cannot make this size itself. -->
+            <WebView
+                android:id="@+id/previewWeb"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:visibility="gone"
+                tools:ignore="WebViewLayout" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Post-reboot rediscovery over mDNS: browse _http._tcp and match the
          "Thingino Web UI (" name prefix that S50mdnsd generates. -->
     <com.google.android.material.button.MaterialButton
