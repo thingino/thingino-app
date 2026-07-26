@@ -60,7 +60,22 @@ class SavedNetworks(context: Context) {
         write(updated.sortedBy { it.ssid.lowercase() })
     }
 
-    fun forget(ssid: String) = write(list().filterNot { it.ssid == ssid })
+    fun forget(ssid: String) {
+        write(list().filterNot { it.ssid == ssid })
+        // A forgotten network cannot stay preferred, or the picker would try to
+        // auto-select something that no longer exists.
+        if (preferred() == ssid) setPreferred(null)
+    }
+
+    /** SSID auto-selected when the provisioning screen opens, if still saved. */
+    fun preferred(): String? =
+        prefs.getString(KEY_PREFERRED, null)?.takeIf { ssid -> list().any { it.ssid == ssid } }
+
+    fun setPreferred(ssid: String?) {
+        prefs.edit().apply {
+            if (ssid == null) remove(KEY_PREFERRED) else putString(KEY_PREFERRED, ssid)
+        }.apply()
+    }
 
     fun find(ssid: String): SavedNetwork? = list().firstOrNull { it.ssid == ssid }
 
@@ -76,5 +91,6 @@ class SavedNetworks(context: Context) {
         private const val ENCRYPTED_PREFS = "tprov_networks"
         private const val FALLBACK_PREFS = "tprov_networks_plain"
         private const val KEY_NETWORKS = "networks"
+        private const val KEY_PREFERRED = "preferred"
     }
 }

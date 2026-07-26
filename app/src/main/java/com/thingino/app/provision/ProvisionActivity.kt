@@ -100,6 +100,7 @@ class ProvisionActivity : AppCompatActivity() {
         applyDebugVisible()
         populateSsids(emptyList())
         applyPassRowVisible()
+        selectPreferred()
 
         binding.findButton.setOnClickListener { findCamera() }
         binding.provisionButton.setOnClickListener { provision() }
@@ -370,6 +371,16 @@ class ProvisionActivity : AppCompatActivity() {
         binding.ssidSpinner.post { rebuildingPicker = false }
     }
 
+    /**
+     * Opens on the network the user marked, so provisioning several cameras
+     * onto the same Wi-Fi needs no picking at all.
+     */
+    private fun selectPreferred() {
+        val ssid = savedNetworks.preferred() ?: return
+        val at = pickerRows.indexOfFirst { ssidOf(it) == ssid }
+        if (at >= 0) binding.ssidSpinner.setSelection(at + 1)
+    }
+
     private fun ssidOf(row: PickerRow): String = when (row) {
         is PickerRow.Saved -> row.network.ssid
         is PickerRow.Scanned -> row.network.ssid
@@ -545,7 +556,6 @@ class ProvisionActivity : AppCompatActivity() {
             } else {
                 getString(R.string.settings_networks_count_fmt, n)
             }
-            manageNetworks.isEnabled = n > 0
         }
         refreshNetworkRow()
         manageNetworks.setOnClickListener { showSavedNetworks { refreshNetworkRow() } }
@@ -580,26 +590,71 @@ class ProvisionActivity : AppCompatActivity() {
      */
     private fun showSavedNetworks(onChanged: () -> Unit) {
         val networks = savedNetworks.list()
-        if (networks.isEmpty()) return
-        val labels = networks.map { it.ssid }.toTypedArray()
+        val preferred = savedNetworks.preferred()
+        val labels = networks.map {
+            getString(
+                if (it.ssid == preferred) R.string.networks_preferred_mark
+                else R.string.networks_plain_mark,
+                it.ssid,
+            )
+        }.toTypedArray()
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_networks_title)
-            .setItems(labels) { _, which ->
-                val target = networks[which]
-                MaterialAlertDialogBuilder(this)
-                    .setTitle(getString(R.string.settings_networks_forget_fmt, target.ssid))
-                    .setMessage(R.string.settings_networks_forget_body)
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .setPositiveButton(R.string.btn_forget) { _, _ ->
-                        savedNetworks.forget(target.ssid)
-                        log("Forgot saved network ${target.ssid}")
-                        populateSsids(scanned)
-                        onChanged()
-                    }
-                    .show()
-            }
+            .setItems(labels) { _, which -> networkActions(networks[which], onChanged) }
+            .setPositiveButton(R.string.networks_add) { _, _ -> addNetwork(onChanged) }
             .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Two useful things per network, so ask rather than assume one of them. */
+    private fun networkActions(target: SavedNetwork, onChanged: () -> Unit) {
+        val isPreferred = savedNetworks.preferred() == target.ssid
+        MaterialAlertDialogBuilder(this)
+            .setTitle(target.ssid)
+            .setNeutralButton(
+                if (isPreferred) R.string.networks_prefer_clear else R.string.networks_prefer_set
+            ) { _, _ ->
+                savedNetworks.setPreferred(if (isPreferred) null else target.ssid)
+                log(
+                    if (isPreferred) "${target.ssid} will no longer be selected automatically"
+                    else "${target.ssid} will be selected automatically"
+                )
+                onChanged()
+            }
+            .setPositiveButton(R.string.btn_forget) { _, _ ->
+                savedNetworks.forget(target.ssid)
+                log("Forgot saved network ${target.ssid}")
+                populateSsids(scanned)
+                onChanged()
+            }
+            .setNegativeButton(R.string.btn_cancel, null)
+            .show()
+    }
+
+    private fun addNetwork(onChanged: () -> Unit) {
+        val view = layoutInflater.inflate(R.layout.dialog_add_network, null)
+        val ssidField = view.findViewById<android.widget.EditText>(R.id.addSsid)
+        val passField = view.findViewById<android.widget.EditText>(R.id.addPass)
+        val preferBox = view.findViewById<android.widget.CheckBox>(R.id.addPreferred)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.networks_add_title)
+            .setView(view)
+            .setNegativeButton(R.string.btn_cancel, null)
+            .setPositiveButton(R.string.btn_save) { _, _ ->
+                val ssid = ssidField.text.toString().trim()
+                val pass = passField.text.toString()
+                if (ssid.isEmpty() || pass.isEmpty()) {
+                    warn("A network needs both a name and a passphrase.")
+                    return@setPositiveButton
+                }
+                savedNetworks.save(SavedNetwork(ssid, pass))
+                if (preferBox.isChecked) savedNetworks.setPreferred(ssid)
+                log("Saved $ssid")
+                populateSsids(scanned)
+                onChanged()
+            }
             .show()
     }
 

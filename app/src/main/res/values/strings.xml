@@ -96,6 +96,13 @@
     <string name="settings_networks_none">None saved yet</string>
     <string name="settings_networks_count_fmt">%1$d saved</string>
     <string name="settings_networks_title">Saved Wi-Fi networks</string>
+    <string name="networks_add">Add network</string>
+    <string name="networks_add_title">Add a Wi-Fi network</string>
+    <string name="networks_prefer">Select this network automatically</string>
+    <string name="networks_prefer_set">Select automatically</string>
+    <string name="networks_prefer_clear">Stop selecting automatically</string>
+    <string name="networks_preferred_mark">★ %1$s</string>
+    <string name="networks_plain_mark">%1$s</string>
     <string name="settings_networks_forget_fmt">Forget %1$s?</string>
     <string name="settings_networks_forget_body">The passphrase for this network will be removed from this device.</string>
     <string name="btn_forget">Forget</string>
