@@ -90,7 +90,7 @@ class HubActivity : AppCompatActivity() {
 
     private fun refreshCameras() = lifecycleScope.launch {
         binding.cameraStatus.text = getString(R.string.hub_searching)
-        val found = runCatching { discovery.browse(CameraDiscovery.HTTP_SERVICE) }
+        val found = runCatching { discovery.browse(CameraDiscovery.THINGINO_SERVICE) }
             .getOrDefault(emptyList())
 
         cameras.clear()

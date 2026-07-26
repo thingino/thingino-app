@@ -271,8 +271,8 @@ class ProvisionActivity : AppCompatActivity() {
     private fun discoverOnNetwork() = lifecycleScope.launch {
         busy(true, getString(R.string.status_discovering))
         try {
-            log("Browsing ${CameraDiscovery.HTTP_SERVICE} for Thingino cameras...")
-            val cams = discovery.browse(CameraDiscovery.HTTP_SERVICE)
+            log("Browsing ${CameraDiscovery.THINGINO_SERVICE} for Thingino cameras...")
+            val cams = discovery.browse(CameraDiscovery.THINGINO_SERVICE)
             if (cams.isEmpty()) {
                 log("Nothing found. mdnsd binds a single interface picked at boot, so give it a moment after reboot, or check the router lease table.")
             } else {

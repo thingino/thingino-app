@@ -49,7 +49,7 @@ class CameraDiscovery(context: Context) {
     private val resolveLock = Mutex()
 
     suspend fun browse(
-        serviceType: String = HTTP_SERVICE,
+        serviceType: String = THINGINO_SERVICE,
         timeoutMs: Long = DISCOVERY_TIMEOUT_MS,
     ): List<DiscoveredCamera> {
         val found = Collections.synchronizedList(mutableListOf<NsdServiceInfo>())
@@ -61,7 +61,10 @@ class CameraDiscovery(context: Context) {
             override fun onStopDiscoveryFailed(type: String, code: Int) = Unit
 
             override fun onServiceFound(info: NsdServiceInfo) {
-                if (info.serviceName.startsWith(LABEL_PREFIX)) found.add(info)
+                // No name filter: the type is ours, so anything answering on it
+                // is a camera. Filtering by name is impossible anyway, since the
+                // instance name mdnsd publishes is the user-settable hostname.
+                found.add(info)
             }
 
             override fun onServiceLost(info: NsdServiceInfo) {
@@ -114,26 +117,21 @@ class CameraDiscovery(context: Context) {
             }
         }
 
-    /**
-     * "Thingino Web UI (ing-wyze-campan2-2540)" becomes "ing-wyze-campan2-2540".
-     * The HTTPS record labels itself "Thingino Web UI (HTTPS <host>)", so the
-     * qualifier is stripped when present.
-     */
-    private fun hostnameFrom(serviceName: String): String {
-        val inner = LABEL_HOSTNAME.find(serviceName)?.groupValues?.get(1) ?: return serviceName
-        return inner.removePrefix("HTTPS ").trim()
-    }
+    /** The published instance name is the hostname. */
+    private fun hostnameFrom(serviceName: String): String = serviceName
 
     companion object {
+        /**
+         * A type of our own. `_http._tcp` is unusable for this: on a normal
+         * home network it returns dozens of unrelated devices, and the only
+         * thing distinguishing a camera would be its instance name, which is
+         * the hostname and therefore whatever the user chose.
+         */
+        const val THINGINO_SERVICE = "_thingino._tcp"
         const val HTTP_SERVICE = "_http._tcp"
         const val HTTPS_SERVICE = "_https._tcp"
         const val RTSP_SERVICE = "_rtsp._tcp"
         const val RTSPS_SERVICE = "_rtsps._tcp"
-
-        /** Covers "Thingino Web UI (...)", "Thingino RTSP (...)" and the HTTPS variant. */
-        private const val LABEL_PREFIX = "Thingino "
-
-        private val LABEL_HOSTNAME = Regex("""\(([^)]+)\)\s*$""")
 
         private const val DISCOVERY_TIMEOUT_MS = 6_000L
     }
