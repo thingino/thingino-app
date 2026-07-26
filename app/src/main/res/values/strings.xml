@@ -85,6 +85,14 @@
     <string name="settings_host_title">Portal address</string>
     <string name="settings_host_portal">Captive portal (172.16.0.1)</string>
     <string name="settings_host_ap_mode">Camera AP mode (100.64.1.1)</string>
+    <string name="settings_networks">Saved Wi-Fi networks</string>
+    <string name="settings_networks_manage">Manage</string>
+    <string name="settings_networks_none">None saved yet</string>
+    <string name="settings_networks_count_fmt">%1$d saved</string>
+    <string name="settings_networks_title">Saved Wi-Fi networks</string>
+    <string name="settings_networks_forget_fmt">Forget %1$s?</string>
+    <string name="settings_networks_forget_body">The passphrase for this network will be removed from this device.</string>
+    <string name="btn_forget">Forget</string>
     <string name="settings_provision_debug">Show debug log</string>
     <string name="settings_provision_debug_desc">Console output at the foot of the screen</string>
 </resources>

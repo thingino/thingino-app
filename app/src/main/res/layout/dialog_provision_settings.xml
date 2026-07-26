@@ -49,6 +49,54 @@
         android:background="@color/on_surface_variant"
         android:alpha="0.2" />
 
+    <!-- Saved Wi-Fi networks, so the user can review and remove what the app
+         is holding rather than only meeting them in the picker. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_networks"
+                android:textColor="@color/on_surface" />
+
+            <TextView
+                android:id="@+id/dlgNetworkCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dlgManageNetworks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_networks_manage"
+            android:textSize="12sp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            style="@style/Widget.Thingino.Button.Outlined" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/on_surface_variant"
+        android:alpha="0.2" />
+
     <!-- Reveals the monospace log pane at the foot of the main screen. -->
     <LinearLayout
         android:layout_width="match_parent"

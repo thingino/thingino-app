@@ -342,11 +342,25 @@ class ProvisionActivity : AppCompatActivity() {
     private fun showSettingsDialog() {
         val view = layoutInflater.inflate(R.layout.dialog_provision_settings, null)
         val debugSwitch = view.findViewById<MaterialSwitch>(R.id.dlgDebugSwitch)
+        val networkCount = view.findViewById<android.widget.TextView>(R.id.dlgNetworkCount)
+        val manageNetworks = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.dlgManageNetworks)
         val hostGroup = view.findViewById<RadioGroup>(R.id.dlgHostRadioGroup)
         val radioPortal = view.findViewById<RadioButton>(R.id.dlgRadioPortal)
         val radioApMode = view.findViewById<RadioButton>(R.id.dlgRadioApMode)
 
         debugSwitch.isChecked = prefs.getBoolean(PREF_DEBUG, false)
+
+        fun refreshNetworkRow() {
+            val n = savedNetworks.list().size
+            networkCount.text = if (n == 0) {
+                getString(R.string.settings_networks_none)
+            } else {
+                getString(R.string.settings_networks_count_fmt, n)
+            }
+            manageNetworks.isEnabled = n > 0
+        }
+        refreshNetworkRow()
+        manageNetworks.setOnClickListener { showSavedNetworks { refreshNetworkRow() } }
         (if (portalHost == PortalClient.AP_MODE_HOST) radioApMode else radioPortal).isChecked = true
 
         MaterialAlertDialogBuilder(this)
@@ -368,6 +382,36 @@ class ProvisionActivity : AppCompatActivity() {
                     log("Portal address set to $host")
                 }
             }
+            .show()
+    }
+
+    /**
+     * Review and remove what the app is holding. Without this the only way to
+     * meet a saved network is to stumble on it in the picker, and the only way
+     * to remove one is to select it first.
+     */
+    private fun showSavedNetworks(onChanged: () -> Unit) {
+        val networks = savedNetworks.list()
+        if (networks.isEmpty()) return
+        val labels = networks.map { it.ssid }.toTypedArray()
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.settings_networks_title)
+            .setItems(labels) { _, which ->
+                val target = networks[which]
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.settings_networks_forget_fmt, target.ssid))
+                    .setMessage(R.string.settings_networks_forget_body)
+                    .setNegativeButton(R.string.btn_cancel, null)
+                    .setPositiveButton(R.string.btn_forget) { _, _ ->
+                        savedNetworks.forget(target.ssid)
+                        log("Forgot saved network ${target.ssid}")
+                        populateSsids(scanned)
+                        onChanged()
+                    }
+                    .show()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
