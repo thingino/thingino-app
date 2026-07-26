@@ -131,7 +131,7 @@
             android:layout_marginEnd="8dp"
             android:text="@string/btn_find"
             android:textSize="16sp"
-            style="@style/Widget.Thingino.Button" />
+            style="@style/Widget.Thingino.Button.Outlined.Accent" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/provisionButton"

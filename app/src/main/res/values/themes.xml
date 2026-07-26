@@ -44,10 +44,12 @@
         <item name="rippleColor">@color/on_surface_variant</item>
     </style>
 
-    <!-- btn-outline-primary -->
+    <!-- btn-outline-primary / .btn-attention -->
     <style name="Widget.Thingino.Button.Outlined.Accent">
         <item name="android:textColor">@color/btn_accent_text</item>
         <item name="strokeColor">@color/btn_accent_stroke</item>
+        <item name="backgroundTint">@color/btn_accent_bg</item>
+        <item name="android:textStyle">bold</item>
         <item name="rippleColor">@color/primary</item>
     </style>
 </resources>

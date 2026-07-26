@@ -20,6 +20,8 @@
          dimmed accent, so it is obvious at a glance which actions are live. -->
     <color name="disabled_content">#484F58</color>
     <color name="transparent">#00000000</color>
+    <!-- webflash .btn-attention: rgba(255,140,0,0.08) -->
+    <color name="primary_wash">#14FF8C00</color>
 
     <!-- Provisioning-only additions. Kept in the same GitHub-dark family so
          they sit correctly next to the inherited palette above. -->

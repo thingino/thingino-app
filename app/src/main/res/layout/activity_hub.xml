@@ -61,7 +61,7 @@
         android:text="@string/hub_provision"
         android:textSize="17sp"
         app:cornerRadius="8dp"
-        style="@style/Widget.Thingino.Button" />
+        style="@style/Widget.Thingino.Button.Outlined.Accent" />
 
     <TextView
         android:id="@+id/provisionSubtitle"

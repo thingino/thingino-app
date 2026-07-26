@@ -115,7 +115,7 @@
             android:text="@string/btn_write"
             android:textSize="16sp"
             android:enabled="false"
-            style="@style/Widget.Thingino.Button" />
+            style="@style/Widget.Thingino.Button.Outlined.Accent" />
     </LinearLayout>
 
     <!-- Explicit "Bootstrap Device" is remote-only (local USB bootstraps on
@@ -223,7 +223,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/release_flash"
                     android:textSize="13sp"
-                    android:enabled="false" style="@style/Widget.Thingino.Button" />
+                    android:enabled="false" style="@style/Widget.Thingino.Button.Outlined.Accent" />
 
             </LinearLayout>
         </LinearLayout>
