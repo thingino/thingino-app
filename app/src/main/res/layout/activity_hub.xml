@@ -61,7 +61,7 @@
         android:text="@string/hub_provision"
         android:textSize="17sp"
         app:cornerRadius="8dp"
-        style="@style/Widget.Material3.Button" />
+        style="@style/Widget.Thingino.Button" />
 
     <TextView
         android:id="@+id/provisionSubtitle"
@@ -82,7 +82,7 @@
         android:text="@string/hub_flash"
         android:textSize="17sp"
         app:cornerRadius="8dp"
-        style="@style/Widget.Material3.Button.TonalButton" />
+        style="@style/Widget.Thingino.Button.Outlined" />
 
     <TextView
         android:layout_width="match_parent"

@@ -104,7 +104,7 @@
             android:text="@string/btn_read"
             android:textSize="16sp"
             android:enabled="false"
-            style="@style/Widget.Material3.Button" />
+            style="@style/Widget.Thingino.Button.Outlined.Accent" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/writeButton"
@@ -115,7 +115,7 @@
             android:text="@string/btn_write"
             android:textSize="16sp"
             android:enabled="false"
-            style="@style/Widget.Material3.Button.TonalButton" />
+            style="@style/Widget.Thingino.Button" />
     </LinearLayout>
 
     <!-- Explicit "Bootstrap Device" is remote-only (local USB bootstraps on
@@ -129,7 +129,7 @@
         android:textSize="14sp"
         android:enabled="false"
         android:visibility="gone"
-        style="@style/Widget.Material3.Button.TonalButton" />
+        style="@style/Widget.Thingino.Button.Outlined" />
 
     <!-- Flash a prebuilt thingino release, straight from GitHub (collapsed by
          default; hidden entirely unless enabled in Settings). No proxy: unlike the
@@ -223,7 +223,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/release_flash"
                     android:textSize="13sp"
-                    android:enabled="false" />
+                    android:enabled="false" style="@style/Widget.Thingino.Button" />
 
             </LinearLayout>
         </LinearLayout>
@@ -309,7 +309,7 @@
                         android:layout_marginEnd="4dp"
                         android:text="@string/btn_sel_spl"
                         android:textSize="12sp"
-                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                        style="@style/Widget.Thingino.Button.Outlined" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/selectUbootButton"
@@ -320,7 +320,7 @@
                         android:layout_marginEnd="4dp"
                         android:text="@string/btn_sel_uboot"
                         android:textSize="12sp"
-                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                        style="@style/Widget.Thingino.Button.Outlined" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/clearCustomButton"
@@ -346,7 +346,7 @@
         android:text="@string/btn_diag"
         android:textSize="14sp"
         android:enabled="false"
-        style="@style/Widget.Material3.Button.OutlinedButton" />
+        style="@style/Widget.Thingino.Button.Outlined" />
 
     <!-- Progress -->
     <ProgressBar

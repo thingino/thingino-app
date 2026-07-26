@@ -131,7 +131,7 @@
             android:layout_marginEnd="8dp"
             android:text="@string/btn_find"
             android:textSize="16sp"
-            style="@style/Widget.Material3.Button" />
+            style="@style/Widget.Thingino.Button" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/provisionButton"
@@ -142,7 +142,7 @@
             android:text="@string/btn_provision"
             android:textSize="16sp"
             android:enabled="false"
-            style="@style/Widget.Material3.Button.TonalButton" />
+            style="@style/Widget.Thingino.Button.Outlined.Accent" />
     </LinearLayout>
 
     <!-- Wi-Fi credentials. Expanded by default: this is the one card the user
@@ -355,7 +355,7 @@
         android:layout_marginBottom="10dp"
         android:text="@string/btn_discover"
         android:textSize="14sp"
-        style="@style/Widget.Material3.Button.OutlinedButton" />
+        style="@style/Widget.Thingino.Button.Outlined" />
 
     <!-- Progress -->
     <ProgressBar

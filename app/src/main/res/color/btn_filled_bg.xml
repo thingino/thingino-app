@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .btn-thingino. Disabled drops to transparent so it stops reading as a
+     pressable slab; the stroke selector supplies the muted outline instead. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/transparent" android:state_enabled="false" />
+    <item android:color="@color/primary" />
+</selector>

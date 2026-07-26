@@ -16,6 +16,11 @@
     <color name="white">#FFFFFF</color>
     <color name="log_background">#010409</color>
 
+    <!-- Disabled controls, from the web flasher: flat muted grey rather than a
+         dimmed accent, so it is obvious at a glance which actions are live. -->
+    <color name="disabled_content">#484F58</color>
+    <color name="transparent">#00000000</color>
+
     <!-- Provisioning-only additions. Kept in the same GitHub-dark family so
          they sit correctly next to the inherited palette above. -->
     <color name="success">#3FB950</color>

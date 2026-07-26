@@ -16,4 +16,38 @@
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
     </style>
+
+    <!-- Button styles mirroring the web properties. The house rule there is
+         solid accent for the one primary action and outline for everything
+         else: image-builder's .btn-thingino is a solid #ff8c00 on #0d1117,
+         and webflash is btn-outline-primary / btn-outline-secondary
+         throughout. Disabled always goes flat muted grey rather than a dimmed
+         accent, so it is obvious which actions are live. -->
+
+    <!-- .btn-thingino -->
+    <style name="Widget.Thingino.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/btn_filled_bg</item>
+        <item name="android:textColor">@color/btn_filled_text</item>
+        <item name="strokeColor">@color/btn_filled_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="rippleColor">@color/on_primary</item>
+    </style>
+
+    <!-- btn-outline-secondary -->
+    <style name="Widget.Thingino.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">@color/btn_secondary_text</item>
+        <item name="strokeColor">@color/btn_secondary_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="rippleColor">@color/on_surface_variant</item>
+    </style>
+
+    <!-- btn-outline-primary -->
+    <style name="Widget.Thingino.Button.Outlined.Accent">
+        <item name="android:textColor">@color/btn_accent_text</item>
+        <item name="strokeColor">@color/btn_accent_stroke</item>
+        <item name="rippleColor">@color/primary</item>
+    </style>
 </resources>
