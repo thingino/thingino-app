@@ -70,8 +70,8 @@
     <string name="wifi_title">Wi-Fi Network</string>
     <string name="ssid_manual">Enter manually…</string>
     <string name="wifi_save">Save network</string>
-    <string name="wifi_show_password">Show password</string>
-    <string name="wifi_hide_password">Hide password</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
     <string name="wifi_saved_toast_fmt">Saved %1$s</string>
     <string name="hint_pubkey_pick">Choose a public key file</string>
     <string name="wifi_forget">Forget</string>

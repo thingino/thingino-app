@@ -52,6 +52,7 @@ class ProvisionActivity : AppCompatActivity() {
      */
     private var selectedSavedPassword: String? = null
     private var passwordVisible = false
+    private var rootPasswordVisible = false
 
     /**
      * Set while the picker is rebuilt. Assigning an adapter resets the Spinner
@@ -118,7 +119,13 @@ class ProvisionActivity : AppCompatActivity() {
 
         binding.forgetButton.setOnClickListener { forgetSelected() }
         binding.saveNetworkButton.setOnClickListener { saveCurrentNetwork() }
-        binding.passToggle.setOnClickListener { togglePasswordVisible() }
+        binding.passToggle.setOnClickListener {
+            passwordVisible = toggleReveal(binding.passInput, binding.passToggle, passwordVisible)
+        }
+        binding.rootPassToggle.setOnClickListener {
+            rootPasswordVisible =
+                toggleReveal(binding.rootPassInput, binding.rootPassToggle, rootPasswordVisible)
+        }
         binding.pubkeyPickButton.setOnClickListener { pubkeyPicker.launch("*/*") }
 
         // Save only makes sense once there is something to save.
@@ -480,14 +487,26 @@ class ProvisionActivity : AppCompatActivity() {
      * back where it was; otherwise revealing a passphrase jumps to monospace
      * and sends the caret to position zero mid-edit.
      */
-    private fun togglePasswordVisible() {
-        val field = binding.passInput
+    /**
+     * Reveals or hides a password field.
+     *
+     * Visibility is tracked by the caller rather than read back from
+     * inputType: variations are a masked field, so VISIBLE_PASSWORD (0x90) AND
+     * PASSWORD (0x80) is non-zero and a derived check only ever toggles one
+     * way. Changing inputType also resets the typeface and caret, so both are
+     * restored.
+     */
+    private fun toggleReveal(
+        field: android.widget.EditText,
+        button: android.widget.ImageButton,
+        wasVisible: Boolean,
+    ): Boolean {
         val face = field.typeface
         val at = field.selectionStart
-        passwordVisible = !passwordVisible
+        val nowVisible = !wasVisible
 
         field.inputType = android.text.InputType.TYPE_CLASS_TEXT or
-            if (passwordVisible) {
+            if (nowVisible) {
                 android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
             } else {
                 android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -495,12 +514,12 @@ class ProvisionActivity : AppCompatActivity() {
         field.typeface = face
         field.setSelection(at.coerceIn(0, field.text.length))
 
-        binding.passToggle.setImageResource(
-            if (passwordVisible) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+        button.setImageResource(
+            if (nowVisible) R.drawable.ic_visibility_off else R.drawable.ic_visibility
         )
-        binding.passToggle.contentDescription = getString(
-            if (passwordVisible) R.string.wifi_hide_password else R.string.wifi_show_password
-        )
+        button.contentDescription =
+            getString(if (nowVisible) R.string.hide_password else R.string.show_password)
+        return nowVisible
     }
 
     /** Accepts an id_*.pub file; the portal writes it to authorized_keys verbatim. */
