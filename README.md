@@ -24,7 +24,7 @@ the hub, so the fast path stays fast.
 ```
 
 No NDK, no CMake, no libusb. Everything native arrives prebuilt from
-[thingino-dfu](https://github.com/gtxaspec/thingino-dfu): `libtdfu_jni.so` per
+[thingino-dfu](https://github.com/wltechblog/thingino-dfu): `libtdfu_jni.so` per
 ABI (the JNI bridge, libtdfu, and a statically linked libusb) plus the
 `firmware/` bootstrap blobs, in one tarball attached to its releases. The
 version is pinned by `tdfuDepsVersion` in `gradle.properties`.

@@ -31,7 +31,8 @@ val computedVersionName: String = run {
 // release.
 // ---------------------------------------------------------------------------
 val tdfuDepsVersion = providers.gradleProperty("tdfuDepsVersion").getOrElse("1.5.35")
-val tdfuDepsRepo = providers.gradleProperty("tdfuDepsRepo").getOrElse("gtxaspec/thingino-dfu")
+// Releases are published from upstream, not the gtxaspec dev fork.
+val tdfuDepsRepo = providers.gradleProperty("tdfuDepsRepo").getOrElse("wltechblog/thingino-dfu")
 val tdfuDepsFile = providers.gradleProperty("tdfuDepsFile").orNull?.takeIf { it.isNotBlank() }
 
 val depsRoot = layout.buildDirectory.dir("tdfu-deps")
