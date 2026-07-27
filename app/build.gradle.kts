@@ -184,6 +184,10 @@ dependencies {
     // rolling SHA-crypt's final permutation step is a good way to lock
     // yourself out of a camera.
     implementation("commons-codec:commons-codec:1.16.0")
+    // WebViewAssetLoader: serves the preview page from an https origin.
+    // RTCPeerConnection requires a secure context, which a file:// page is not
+    // reliably treated as inside WebView.
+    implementation("androidx.webkit:webkit:1.10.0")
 
     testImplementation("junit:junit:4.13.2")
 }

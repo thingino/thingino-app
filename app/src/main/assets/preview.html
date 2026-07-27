@@ -1,0 +1,143 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview</title>
+<style>
+  :root { --bg:#0D1117; --muted:#8B949E; --accent:#FF8C00; --err:#F85149; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); overflow:hidden;
+               font-family: sans-serif; -webkit-user-select:none; user-select:none; }
+  #wrap { position:relative; height:100%; display:flex; align-items:center; justify-content:center; }
+  video { width:100%; height:100%; object-fit:contain; background:#010409;
+          visibility:hidden; }
+  video.live { visibility:visible; }
+  #panel { position:absolute; max-width:88%; text-align:center;
+            font-size:13px; line-height:1.5; color:var(--muted); }
+  #panel.hide { display:none; }
+  #panel.error { color:var(--err); }
+  #retry { display:none; margin-top:12px; padding:7px 20px;
+           background:transparent; color:var(--accent); border:1px solid var(--accent);
+           border-radius:8px; font:inherit; font-size:13px; }
+  #panel.error #retry { display:inline-block; }
+</style>
+
+<div id="wrap">
+  <video id="v" autoplay playsinline muted></video>
+  <div id="panel"><span id="msg">Connecting to the camera</span><br><button id="retry">Retry</button></div>
+</div>
+
+<script>
+'use strict';
+
+/*
+ * Everything is scoped, and only the two WHIP callbacks are put on window
+ * deliberately. A top-level `var` here would be a window property, and some of
+ * those already exist with a type: window.status is a legacy DOMString, so
+ * assigning an element to a variable of that name silently stringifies it.
+ */
+(function () {
+
+var video = document.getElementById('v');
+var panel = document.getElementById('panel');
+var msg = document.getElementById('msg');
+var pc = null;
+
+function show(text, isError) {
+  msg.textContent = text;
+  panel.classList.remove('hide');
+  panel.classList.toggle('error', !!isError);
+}
+
+/*
+ * rwd is ICE-lite and answers non-trickle, so the offer has to carry its
+ * candidates already. The cap matters on a camera's own access point: with no
+ * route off it, gathering can sit waiting on a reflexive candidate that will
+ * never arrive, while the host candidate we actually use is ready at once.
+ */
+function gathered() {
+  if (pc.iceGatheringState === 'complete') return Promise.resolve();
+  return new Promise(function (resolve) {
+    var timer = setTimeout(finish, 2000);
+    function finish() {
+      clearTimeout(timer);
+      pc.removeEventListener('icegatheringstatechange', check);
+      resolve();
+    }
+    function check() { if (pc.iceGatheringState === 'complete') finish(); }
+    pc.addEventListener('icegatheringstatechange', check);
+  });
+}
+
+function teardown() {
+  if (!pc) return;
+  pc.ontrack = null;
+  pc.oniceconnectionstatechange = null;
+  try { pc.close(); } catch (e) {}
+  pc = null;
+  video.srcObject = null;
+  video.classList.remove('live');
+  // rwd holds the session until told otherwise, so say so.
+  AndroidWhip.close();
+}
+
+async function start() {
+  teardown();
+  show('Connecting to the camera', false);
+
+  /*
+   * Mirrors the offer rwd's own viewer makes, deliberately. rwd answers with a
+   * single bundled transport and takes one set of ICE credentials from the
+   * offer, so max-bundle is required rather than a preference. Audio is
+   * sendrecv for the same reason, that being the shape rwd answers; a
+   * transceiver with no track attached asks for no microphone permission.
+   */
+  pc = new RTCPeerConnection({ iceServers: [], bundlePolicy: 'max-bundle' });
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  pc.addTransceiver('audio', { direction: 'sendrecv' });
+
+  pc.ontrack = function (e) {
+    if (e.track.kind !== 'video') return;
+    if (!video.srcObject) video.srcObject = new MediaStream();
+    video.srcObject.addTrack(e.track);
+    video.play().catch(function () {});
+    video.classList.add('live');
+    panel.classList.add('hide');
+  };
+
+  pc.oniceconnectionstatechange = function () {
+    if (!pc) return;
+    var state = pc.iceConnectionState;
+    console.log('ICE ' + state);
+    if (state === 'failed' || state === 'disconnected') {
+      video.classList.remove('live');
+      show('Lost the connection to the camera.', true);
+    }
+  };
+
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    await gathered();
+    // Handed to the app rather than posted from here: the camera's certificate
+    // is self-signed and this page is a different origin from the camera.
+    AndroidWhip.exchange(pc.localDescription.sdp);
+  } catch (e) {
+    show('Could not start the preview. ' + e, true);
+  }
+}
+
+window.onWhipAnswer = function (sdp) {
+  if (!pc) return;
+  pc.setRemoteDescription({ type: 'answer', sdp: sdp }).catch(function (e) {
+    show('The camera answered in a way we could not use. ' + e, true);
+  });
+};
+
+window.onWhipError = function (text) {
+  show(text, true);
+};
+
+document.getElementById('retry').addEventListener('click', start);
+window.addEventListener('pagehide', teardown);
+start();
+
+})();
+</script>

@@ -21,11 +21,13 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.webkit.WebViewAssetLoader
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.thingino.app.databinding.ActivityProvisionBinding
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.util.TimeZone
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -50,6 +52,9 @@ class ProvisionActivity : AppCompatActivity() {
      */
     private var provisioned = false
     private var previewLoaded = false
+
+    /** Held past startPreview so the WHIP session can be torn down on exit. */
+    private var whip: WhipClient? = null
 
     private lateinit var savedNetworks: SavedNetworks
 
@@ -154,7 +159,21 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        portalWifi.release()
+        val session = whip
+        if (session == null) {
+            portalWifi.release()
+        } else {
+            // Ordering, not just tidiness. The DELETE needs the portal network
+            // to still be up, so the release waits behind it rather than racing
+            // it, and both run off the main thread because this is network I/O.
+            // It matters because rwd only reaps sessions that never completed
+            // ICE: one that connected and was then abandoned holds a client
+            // slot until rwd restarts, and there are four.
+            Thread {
+                session.close()
+                portalWifi.release()
+            }.start()
+        }
         super.onDestroy()
     }
 
@@ -720,64 +739,96 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     /**
-     * rwd serves a self-contained WebRTC viewer, so this only has to display
-     * it. Three things it does need:
+     * Our own viewer page rather than the one rwd serves, so the preview looks
+     * like the rest of the app and its failures read in our words.
+     *
+     * The page comes from assets over WebViewAssetLoader's https origin, not
+     * file://. RTCPeerConnection is refused outside a secure context, and
+     * WebView does not dependably treat file:// as one. Only the signalling is
+     * proxied; media flows straight from the camera to WebView's own WebRTC
+     * stack over UDP, untouched by us.
      *
      * WebView ignores a per-connection Network and uses the process default,
      * which is mobile data, so the process is bound to the portal network for
      * the duration.
-     *
-     * rwd listens on HTTPS only, with the portal's self-signed certificate.
-     * That is not incidental: RTCPeerConnection requires a secure context in
-     * Chromium, so a plain-HTTP viewer could not negotiate at all.
-     *
-     * The page autoplays, which needs the user-gesture requirement lifted.
      */
     private fun startPreview() {
         val net = portalNetwork ?: run { warn("Not connected to a camera."); return }
         previewLoaded = true
         portalWifi.bindProcess(net)
 
-        binding.previewWeb.settings.apply {
+        val web = binding.previewWeb
+        web.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        web.settings.apply {
             javaScriptEnabled = true
-            domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
         }
-        binding.previewWeb.webViewClient = object : android.webkit.WebViewClient() {
-            override fun onReceivedSslError(
-                view: android.webkit.WebView?,
-                handler: android.webkit.SslErrorHandler,
-                error: android.net.http.SslError?,
-            ) {
-                // Same self-signed certificate the portal serves, reached by IP.
-                if (error?.url?.contains(PREVIEW_HOST) == true) handler.proceed()
-                else handler.cancel()
-            }
 
-            override fun onReceivedHttpAuthRequest(
-                view: android.webkit.WebView?,
-                handler: android.webkit.HttpAuthHandler,
-                host: String?,
-                realm: String?,
-            ) = handler.proceed(PREVIEW_USER, PREVIEW_PASS)
+        val loader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
+
+        web.webViewClient = object : android.webkit.WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: android.webkit.WebView,
+                request: android.webkit.WebResourceRequest,
+            ) = loader.shouldInterceptRequest(request.url)
 
             override fun onReceivedError(
                 view: android.webkit.WebView?,
                 req: android.webkit.WebResourceRequest?,
                 err: android.webkit.WebResourceError?,
             ) {
-                warn("Preview failed: ${err?.description}")
+                if (req?.isForMainFrame == true) warn("Preview failed: ${err?.description}")
             }
         }
-        // Surface the page's own diagnostics; it logs ICE and SDP progress.
-        binding.previewWeb.webChromeClient = object : android.webkit.WebChromeClient() {
+        web.webChromeClient = object : android.webkit.WebChromeClient() {
             override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
                 log("preview: ${m.message()}")
                 return true
             }
         }
-        log("Loading $PREVIEW_URL")
-        binding.previewWeb.loadUrl(PREVIEW_URL)
+
+        val session = WhipClient(net)
+        whip = session
+        web.addJavascriptInterface(WhipBridge(web, session, ::log), "AndroidWhip")
+        log("Starting preview")
+        web.loadUrl(PREVIEW_URL)
+    }
+
+    /**
+     * Carries the SDP exchange between the page and [WhipClient].
+     *
+     * The page could POST its own offer, but the camera's certificate is
+     * self-signed and the page is cross-origin to it, so that would depend on
+     * both an SSL-error bypass for a subresource and rwd's CORS policy. Going
+     * through here reuses the TLS path provisioning already proves works.
+     *
+     * Bridge methods run on WebView's binder thread, never the main one, so the
+     * blocking POST stays where it is. The answer goes back by evaluating
+     * script rather than as a return value: returning it would hold the page's
+     * script thread for the whole round trip.
+     */
+    private class WhipBridge(
+        private val web: android.webkit.WebView,
+        private val client: WhipClient,
+        private val log: (String) -> Unit,
+    ) {
+        @android.webkit.JavascriptInterface
+        fun close() = client.close()
+
+        @android.webkit.JavascriptInterface
+        fun exchange(offerSdp: String) {
+            val (callback, argument) = try {
+                "window.onWhipAnswer" to client.exchange(offerSdp)
+            } catch (e: Exception) {
+                val message = e.message ?: "Preview failed"
+                log(message)
+                "window.onWhipError" to message
+            }
+            val quoted = JSONObject.quote(argument)
+            web.post { web.evaluateJavascript("$callback($quoted)", null) }
+        }
     }
 
     private fun setFormEnabled(enabled: Boolean) {
@@ -819,9 +870,7 @@ class ProvisionActivity : AppCompatActivity() {
         private const val PREF_DEBUG = "show_debug_log"
         private const val PREF_HOST = "portal_host"
         private const val MAX_PUBKEY_BYTES = 16 * 1024
-        private const val PREVIEW_HOST = "172.16.0.1"
-        private const val PREVIEW_URL = "https://172.16.0.1:8554/webrtc?debug"
-        private const val PREVIEW_USER = "thingino"
-        private const val PREVIEW_PASS = "thingino"
+        private const val PREVIEW_URL =
+            "https://appassets.androidplatform.net/assets/preview.html"
     }
 }
