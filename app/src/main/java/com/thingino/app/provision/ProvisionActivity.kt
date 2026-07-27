@@ -268,7 +268,7 @@ class ProvisionActivity : AppCompatActivity() {
             return@launch
         }
         if (rootPass.isEmpty()) {
-            warn("Set a root password. The portal writes it with chpasswd -c sha512.")
+            warn("Root password is empty, please set a root password.")
             return@launch
         }
 
