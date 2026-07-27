@@ -189,16 +189,6 @@
                 android:importantForAutofill="no"
                 android:textSize="14sp" />
 
-            <TextView
-                android:id="@+id/savedPassNote"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/hint_pass_saved"
-                android:textSize="13sp"
-                android:textColor="@color/on_surface_variant"
-                android:visibility="gone" />
-
             <LinearLayout
                 android:id="@+id/passRow"
                 android:layout_width="match_parent"
@@ -227,12 +217,16 @@
                     android:contentDescription="@string/show_password" />
             </LinearLayout>
 
+            <!-- Save, or the note plus Forget: these states are mutually
+                 exclusive in practice, so they share a row rather than each
+                 claiming one. The Space keeps Forget on the right edge in the
+                 one state where the note is absent, just after saving. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="4dp">
+                android:layout_marginTop="8dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/saveNetworkButton"
@@ -247,6 +241,16 @@
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     style="@style/Widget.Thingino.Button.Outlined.Accent" />
+
+                <TextView
+                    android:id="@+id/savedPassNote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/hint_pass_saved"
+                    android:textSize="13sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:visibility="gone" />
 
                 <Space
                     android:layout_width="0dp"
