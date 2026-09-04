@@ -15,7 +15,15 @@ object TdfuBridge {
         System.loadLibrary("tdfu_jni")
     }
 
-    /** Callback interface for log messages and progress updates from native code. */
+    /**
+     * Callback interface for log messages and progress updates from native code.
+     *
+     * [onProgress]'s `percent` is 0..100, or -1 when the native side has no total to
+     * measure against (a whole-chip read ends on a short block, so its length is only
+     * known when it finishes); the UI shows an indeterminate bar for -1. `stage` is one
+     * of `bootstrap`, `read`, `write`, `verify`, `erase`, and `message` names the
+     * activity with the live byte count ("Reading flash: 8388608 bytes").
+     */
     interface NativeCallback {
         fun onLog(message: String)
         fun onProgress(percent: Int, stage: String, message: String)

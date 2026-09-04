@@ -490,8 +490,17 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
 
     override fun onProgress(percent: Int, stage: String, message: String) {
         runOnUiThread {
-            progressBar.progress = percent
-            progressText.text = "[$stage] $message ($percent%)"
+            // A negative percent means the native side has no total to measure against
+            // (a whole-chip read ends on a short block, so its length is unknown until
+            // it finishes): an indeterminate bar and the status line without a number,
+            // the way the web flasher draws its striped bar with the byte count.
+            progressBar.isIndeterminate = percent < 0
+            if (percent < 0) {
+                progressText.text = "[$stage] $message"
+            } else {
+                progressBar.progress = percent
+                progressText.text = "[$stage] $message ($percent%)"
+            }
         }
     }
 
@@ -1192,6 +1201,9 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
     private fun finishOperation() {
         operationRunning = false
         progressBar.visibility = View.GONE
+        // A read that failed mid-way leaves the bar indeterminate; the next operation
+        // starts from an empty determinate bar.
+        progressBar.isIndeterminate = false
         progressText.visibility = View.GONE
         if (isRemoteMode) {
             if (remoteClient?.isConnected() == true) setButtonsEnabled(true)
