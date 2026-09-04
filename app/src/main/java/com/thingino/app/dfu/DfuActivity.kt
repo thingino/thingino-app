@@ -52,6 +52,7 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
         private const val PREF_RELEASES = "show_releases"
         private const val PREF_ADVANCED = "show_advanced"
         private const val PREF_REBOOT = "reboot_after_flash"
+        private const val PREF_REL_BRANCH = "release_branch"
     }
 
     private lateinit var usbHelper: UsbHelper
@@ -81,12 +82,17 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
 
     // Prebuilt-release picker (opt-in via Settings).
     private lateinit var releaseCard: View
+    private lateinit var releaseBranchSpinner: Spinner
     private lateinit var releaseSpinner: Spinner
     private lateinit var releaseDeviceSpinner: Spinner
     private lateinit var releaseAllCheck: CheckBox
     private lateinit var releaseInfo: TextView
     private lateinit var releaseFlashButton: Button
     private var releases: List<Releases.Release> = emptyList()
+    /** The menu branches with builds, in Releases.BRANCHES order: releaseBranchSpinner's rows. */
+    private var releaseBranches: List<String> = emptyList()
+    /** The chosen branch's builds, newest first: releaseSpinner's rows after the placeholder. */
+    private var branchReleases: List<Releases.Release> = emptyList()
     private var releaseImages: List<String> = emptyList()
     private var releasesLoaded = false
     // The SoC the image list is currently narrowed to, so we can tell when a
@@ -1228,6 +1234,7 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
 
     private fun setupReleasePicker() {
         releaseCard = findViewById(R.id.releaseCard)
+        releaseBranchSpinner = findViewById(R.id.releaseBranchSpinner)
         releaseSpinner = findViewById(R.id.releaseSpinner)
         releaseDeviceSpinner = findViewById(R.id.releaseDeviceSpinner)
         releaseAllCheck = findViewById(R.id.releaseAllCheck)
@@ -1245,6 +1252,10 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
             if (show && !releasesLoaded) loadReleases()
         }
 
+        releaseBranchSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) = branchSelectionChanged()
+            override fun onNothingSelected(p: AdapterView<*>?) {}
+        }
         releaseSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) = releaseSelectionChanged()
             override fun onNothingSelected(p: AdapterView<*>?) {}
@@ -1282,23 +1293,52 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
         }
 
     private fun loadReleases() {
+        releaseBranchSpinner.adapter = spinnerOf(listOf("Loading..."))
         releaseSpinner.adapter = spinnerOf(listOf("Loading releases..."))
         lifecycleScope.launch {
             try {
                 releases = Releases.list()
                 releasesLoaded = true
-                releaseSpinner.adapter = spinnerOf(listOf("Select a release...") + releases.map { it.label })
-                appendLog("Found ${releases.size} thingino firmware releases\n")
+                val grouped = Releases.byBranch(releases)
+                releaseBranches = grouped.keys.toList()
+                appendLog(
+                    "Found ${releases.size} thingino firmware releases (" +
+                        grouped.entries.joinToString(", ") { "${it.key}: ${it.value.size}" } + ")\n"
+                )
+                if (releaseBranches.isEmpty()) {
+                    releaseBranchSpinner.adapter = spinnerOf(listOf("No branches"))
+                    releaseSpinner.adapter = spinnerOf(listOf("No releases found"))
+                    return@launch
+                }
+                releaseBranchSpinner.adapter = spinnerOf(releaseBranches)
+                // The branch chosen last time, else the default, else whichever has builds.
+                // The spinner fires branchSelectionChanged for the selection on its next
+                // layout; calling it here fills the list without waiting for that.
+                val wanted = prefs.getString(PREF_REL_BRANCH, Releases.DEFAULT_BRANCH)
+                val index = releaseBranches.indexOf(wanted).takeIf { it >= 0 }
+                    ?: releaseBranches.indexOf(Releases.DEFAULT_BRANCH).takeIf { it >= 0 }
+                    ?: 0
+                releaseBranchSpinner.setSelection(index, false)
+                branchSelectionChanged()
             } catch (e: Exception) {
+                releaseBranchSpinner.adapter = spinnerOf(listOf("Branch"))
                 releaseSpinner.adapter = spinnerOf(listOf("Could not load releases"))
                 appendLog("ERROR: Could not list releases: ${e.message}\n")
             }
         }
     }
 
+    /** Show the chosen branch's builds in the release list and remember the choice, as the web flasher does. */
+    private fun branchSelectionChanged() {
+        val name = releaseBranches.getOrNull(releaseBranchSpinner.selectedItemPosition) ?: return
+        prefs.edit().putString(PREF_REL_BRANCH, name).apply()
+        branchReleases = releases.filter { it.branch == name }
+        releaseSpinner.adapter = spinnerOf(listOf("Select a release...") + branchReleases.map { it.label })
+    }
+
     private fun selectedRelease(): Releases.Release? {
         val pos = releaseSpinner.selectedItemPosition
-        return if (releasesLoaded && pos in 1..releases.size) releases[pos - 1] else null
+        return if (releasesLoaded && pos in 1..branchReleases.size) branchReleases[pos - 1] else null
     }
 
     private fun selectedImage(): String? {

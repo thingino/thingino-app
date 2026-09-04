@@ -190,9 +190,15 @@
                 android:visibility="gone">
 
                 <Spinner
-                    android:id="@+id/releaseSpinner"
+                    android:id="@+id/releaseBranchSpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+
+                <Spinner
+                    android:id="@+id/releaseSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
 
                 <Spinner
                     android:id="@+id/releaseDeviceSpinner"
