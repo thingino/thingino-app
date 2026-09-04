@@ -198,13 +198,13 @@
                     android:id="@+id/releaseSpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp" />
+                    android:layout_marginTop="8dp" />
 
                 <Spinner
                     android:id="@+id/releaseDeviceSpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp" />
+                    android:layout_marginTop="8dp" />
 
                 <CheckBox
                     android:id="@+id/releaseAllCheck"
@@ -220,13 +220,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textSize="12sp"
-                    android:textColor="@color/on_surface_variant" />
+                    android:textColor="@color/on_surface_variant"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/releaseFlashButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="4dp"
                     android:text="@string/release_flash"
                     android:textSize="13sp"
                     android:enabled="false" style="@style/Widget.Thingino.Button.Outlined.Accent" />

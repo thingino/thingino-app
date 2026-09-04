@@ -1353,7 +1353,7 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
         if (rel == null) {
             releaseImages = emptyList()
             releaseDeviceSpinner.adapter = spinnerOf(listOf("Select a release first"))
-            releaseInfo.text = ""
+            setReleaseInfo("")
             refreshReleaseFlashButton()
             return
         }
@@ -1362,10 +1362,12 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
         releaseImages = Releases.imagesFor(rel, detectedSoc, all)
         if (releaseImages.isEmpty()) {
             releaseDeviceSpinner.adapter = spinnerOf(listOf("No matching images"))
-            releaseInfo.text = if (detectedSoc.isNotEmpty() && !all)
-                "No ${detectedSoc.uppercase()} image in this release. Tick “Show all devices” to browse every model."
-            else
-                "This release has no .bin images."
+            setReleaseInfo(
+                if (detectedSoc.isNotEmpty() && !all)
+                    "No ${detectedSoc.uppercase()} image in this release. Tick “Show all devices” to browse every model."
+                else
+                    "This release has no .bin images."
+            )
             refreshReleaseFlashButton()
             return
         }
@@ -1373,12 +1375,20 @@ class DfuActivity : AppCompatActivity(), UsbHelper.DeviceListener, TdfuBridge.Na
         releaseDeviceSpinner.adapter = spinnerOf(
             listOf("Select your device...") +
                 releaseImages.map { it.removePrefix("thingino-").removeSuffix(".bin").replace('_', ' ') })
-        releaseInfo.text = if (detectedSoc.isNotEmpty() && !all)
-            "Images for ${detectedSoc.uppercase()} in this release: ${releaseImages.size}"
-        else
-            "Images in this release (all devices): ${releaseImages.size}" +
-                if (detectedSoc.isEmpty()) "  Connect a device to filter by SoC." else ""
+        setReleaseInfo(
+            if (detectedSoc.isNotEmpty() && !all)
+                "Images for ${detectedSoc.uppercase()} in this release: ${releaseImages.size}"
+            else
+                "Images in this release (all devices): ${releaseImages.size}" +
+                    if (detectedSoc.isEmpty()) "  Connect a device to filter by SoC." else ""
+        )
         refreshReleaseFlashButton()
+    }
+
+    /** The note under the device list; hidden when empty so it leaves no blank line above the button. */
+    private fun setReleaseInfo(text: String) {
+        releaseInfo.text = text
+        releaseInfo.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
     }
 
     /**
