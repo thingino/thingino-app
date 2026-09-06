@@ -24,21 +24,21 @@ the hub, so the fast path stays fast.
 ```
 
 No NDK, no CMake, no libusb. Everything native arrives prebuilt from
-[thingino-dfu](https://github.com/wltechblog/thingino-dfu): `libtdfu_jni.so` per
-ABI (the JNI bridge, libtdfu, and a statically linked libusb) plus the
-`firmware/` bootstrap blobs, in one tarball attached to its releases. The
-version is pinned by `libtdfuVersion` in `gradle.properties`.
+[thingino-dfu-rs](https://github.com/thingino/thingino-dfu-rs): `libtdfu_jni.so`
+per ABI (the JNI bridge and the Rust core, with only Android's own system
+libraries external) plus the `firmware/` bootstrap blobs, in one tarball attached
+to its releases. The version is pinned by `libtdfuVersion` in `gradle.properties`.
 
 To build against an unreleased libtdfu, produce the tarball locally and point at
 it:
 
 ```
-# in a thingino-dfu checkout
-ANDROID_NDK=/path/to/ndk scripts/build-libtdfu-android.sh
+# in a thingino-dfu-rs checkout, with the NDK installed
+ANDROID_NDK_HOME=/path/to/ndk cargo xtask package --target android
 
 # here
 ./gradlew assembleDebug \
-  -PlibtdfuFile=../thingino-dfu/dist/libtdfu-android-1.5.37.tar.gz
+  -PlibtdfuFile=../thingino-dfu-rs/dist/libtdfu-android-2.0.0-rc.3.tar.gz
 ```
 
 Release builds need the signing keystore at `thingino-release.jks` plus

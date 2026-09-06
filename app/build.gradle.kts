@@ -19,20 +19,19 @@ val computedVersionName: String = run {
 }
 
 // ---------------------------------------------------------------------------
-// Native dependencies from thingino-dfu
+// Native dependencies from thingino-dfu-rs
 //
-// This repo has no C toolchain. Everything native arrives prebuilt in one
-// tarball: libtdfu_jni.so per ABI (the JNI bridge, libtdfu, and a statically
-// linked libusb) plus the tpl.bin/uboot.bin bootstrap blobs. Produced there by
-// scripts/build-libtdfu-android.sh.
+// This repo has no native toolchain. Everything native arrives prebuilt in one
+// tarball: libtdfu_jni.so per ABI (the JNI bridge and the Rust core, with only
+// Android's own system libraries external) plus the stage-1/U-Boot bootstrap
+// blobs. Produced there by `cargo xtask package --target android`.
 //
 // Set -PlibtdfuFile to build against a local tarball, which is how you test an
 // unreleased libtdfu without cutting a tag. Otherwise it downloads the pinned
 // release.
 // ---------------------------------------------------------------------------
-val libtdfuVersion = providers.gradleProperty("libtdfuVersion").getOrElse("1.5.37")
-// Releases are published from upstream, not the gtxaspec dev fork.
-val libtdfuRepo = providers.gradleProperty("libtdfuRepo").getOrElse("wltechblog/thingino-dfu")
+val libtdfuVersion = providers.gradleProperty("libtdfuVersion").getOrElse("2.0.0-rc.3")
+val libtdfuRepo = providers.gradleProperty("libtdfuRepo").getOrElse("thingino/thingino-dfu-rs")
 val libtdfuFile = providers.gradleProperty("libtdfuFile").orNull?.takeIf { it.isNotBlank() }
 
 val depsRoot = layout.buildDirectory.dir("libtdfu")
@@ -53,7 +52,7 @@ val fetchLibtdfu = tasks.register("fetchLibtdfu") {
             localTarball != null && localTarball.isFile -> localTarball
             localTarball != null -> throw GradleException(
                 "libtdfuFile points at $localTarball, which does not exist. Run " +
-                    "scripts/build-libtdfu-android.sh in thingino-dfu, or unset the property " +
+                    "`cargo xtask package --target android` in thingino-dfu-rs, or unset the property " +
                     "to download the pinned release instead."
             )
             else -> {
