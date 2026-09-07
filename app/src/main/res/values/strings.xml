@@ -107,6 +107,14 @@
     <string name="settings_networks_forget_fmt">Forget %1$s?</string>
     <string name="settings_networks_forget_body">The passphrase for this network will be removed from this device.</string>
     <string name="btn_forget">Forget</string>
+    <string name="root_save">Save password</string>
+    <string name="hint_rootpass_saved">Using saved root password</string>
+    <string name="hint_root_label">Name for this password</string>
+    <string name="root_prefer">Select this password automatically</string>
+    <string name="settings_root_passwords">Saved root passwords</string>
+    <string name="root_add">Add password</string>
+    <string name="root_add_title">Add a root password</string>
+    <string name="root_save_title">Save root password</string>
     <string name="settings_provision_debug">Show debug log</string>
     <string name="settings_provision_debug_desc">Console output at the foot of the screen</string>
 </resources>

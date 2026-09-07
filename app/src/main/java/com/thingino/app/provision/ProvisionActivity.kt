@@ -21,6 +21,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -66,7 +67,8 @@ class ProvisionActivity : AppCompatActivity() {
     /** Held past startPreview so the WHIP session can be torn down on exit. */
     private var whip: WhipClient? = null
 
-    private lateinit var savedNetworks: SavedNetworks
+    private lateinit var savedNetworks: SecretStore
+    private lateinit var savedRootPasswords: SecretStore
 
     /**
      * Passphrase behind a selected saved network. Held rather than shown: the
@@ -75,6 +77,8 @@ class ProvisionActivity : AppCompatActivity() {
      * by accident. Typing in the password field overrides it.
      */
     private var selectedSavedPassword: String? = null
+    /** The root password picked from its own picker, held the same way. */
+    private var selectedSavedRoot: SavedSecret? = null
     private var passwordVisible = false
     private var rootPasswordVisible = false
 
@@ -87,9 +91,12 @@ class ProvisionActivity : AppCompatActivity() {
     private var rebuildingPicker = false
     /** Spinner rows after the leading "Enter manually" entry. */
     private var pickerRows: List<PickerRow> = emptyList()
+    /** The root password picker's rows, same offset of one. */
+    private var rebuildingRootPicker = false
+    private var rootRows: List<SavedSecret> = emptyList()
 
     private sealed class PickerRow {
-        data class Saved(val network: SavedNetwork) : PickerRow()
+        data class Saved(val network: SavedSecret) : PickerRow()
         data class Scanned(val network: ScannedNetwork) : PickerRow()
     }
 
@@ -117,7 +124,8 @@ class ProvisionActivity : AppCompatActivity() {
 
         portalWifi = PortalWifi(this)
         discovery = CameraDiscovery(this)
-        savedNetworks = SavedNetworks(this)
+        savedNetworks = SecretStore(this, SecretStore.Kind.NETWORKS)
+        savedRootPasswords = SecretStore(this, SecretStore.Kind.ROOT_PASSWORDS)
 
         binding.versionText.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME)
         glow = ObjectAnimator.ofFloat(binding.provisionGlow, View.ALPHA, GLOW_MIN, GLOW_MAX).apply {
@@ -132,6 +140,9 @@ class ProvisionActivity : AppCompatActivity() {
         populateSsids(emptyList())
         applyPassRowVisible()
         selectPreferred()
+        populateRootPasswords()
+        applyRootPassRowVisible()
+        selectPreferredRootPassword()
 
         binding.findButton.setOnClickListener { findCamera() }
         binding.provisionButton.setOnClickListener { provision() }
@@ -147,7 +158,18 @@ class ProvisionActivity : AppCompatActivity() {
             override fun onNothingSelected(p: AdapterView<*>?) = Unit
         }
 
+        binding.rootPassSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                if (rebuildingRootPicker) return
+                onRootPickerSelected(pos)
+            }
+
+            override fun onNothingSelected(p: AdapterView<*>?) = Unit
+        }
+
         binding.forgetButton.setOnClickListener { forgetSelected() }
+        binding.saveRootPassButton.setOnClickListener { saveCurrentRootPassword() }
+        binding.forgetRootPassButton.setOnClickListener { forgetSelectedRootPassword() }
         binding.previewHeader.setOnClickListener { togglePreview() }
         binding.saveNetworkButton.setOnClickListener { saveCurrentNetwork() }
         binding.passToggle.setOnClickListener {
@@ -170,6 +192,11 @@ class ProvisionActivity : AppCompatActivity() {
         }
         binding.ssidInput.addTextChangedListener(watcher)
         binding.passInput.addTextChangedListener(watcher)
+        binding.rootPassInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun afterTextChanged(e: Editable?) = applyRootSaveVisible()
+        })
 
         log("Ready. The camera must be in portal mode, which lasts 10 minutes from boot.")
     }
@@ -288,7 +315,8 @@ class ProvisionActivity : AppCompatActivity() {
         val typed = binding.passInput.text.toString()
         val pass = if (typed.isEmpty()) selectedSavedPassword.orEmpty() else typed
         val hostname = binding.hostnameInput.text.toString().trim()
-        val rootPass = binding.rootPassInput.text.toString()
+        val typedRoot = binding.rootPassInput.text.toString()
+        val rootPass = if (typedRoot.isEmpty()) selectedSavedRoot?.secret.orEmpty() else typedRoot
 
         if (ssid.isEmpty()) {
             warn("Enter the network name the camera should join.")
@@ -412,7 +440,7 @@ class ProvisionActivity : AppCompatActivity() {
     private fun populateSsids(nets: List<ScannedNetwork>) {
         val saved = savedNetworks.list()
         // A saved network that the camera can also hear should appear once.
-        val savedSsids = saved.map { it.ssid }.toSet()
+        val savedSsids = saved.map { it.name }.toSet()
         pickerRows = saved.map { PickerRow.Saved(it) } +
             nets.filterNot { it.ssid in savedSsids }.map { PickerRow.Scanned(it) }
 
@@ -425,7 +453,7 @@ class ProvisionActivity : AppCompatActivity() {
         val labels = mutableListOf(getString(R.string.ssid_manual))
         pickerRows.mapTo(labels) { row ->
             when (row) {
-                is PickerRow.Saved -> getString(R.string.wifi_saved_fmt, row.network.ssid)
+                is PickerRow.Saved -> getString(R.string.wifi_saved_fmt, row.network.name)
                 is PickerRow.Scanned -> getString(
                     R.string.wifi_scanned_fmt,
                     row.network.ssid,
@@ -457,7 +485,7 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     private fun ssidOf(row: PickerRow): String = when (row) {
-        is PickerRow.Saved -> row.network.ssid
+        is PickerRow.Saved -> row.network.name
         is PickerRow.Scanned -> row.network.ssid
     }
 
@@ -465,9 +493,9 @@ class ProvisionActivity : AppCompatActivity() {
         val row = pickerRows.getOrNull(position - 1)
         when (row) {
             is PickerRow.Saved -> {
-                binding.ssidInput.setText(row.network.ssid)
+                binding.ssidInput.setText(row.network.name)
                 binding.passInput.setText("")
-                selectedSavedPassword = row.network.password
+                selectedSavedPassword = row.network.secret
                 binding.forgetButton.visibility = View.VISIBLE
                 applyPassRowVisible()
             }
@@ -529,7 +557,7 @@ class ProvisionActivity : AppCompatActivity() {
         val ssid = binding.ssidInput.text.toString().trim()
         val typed = binding.passInput.text.toString()
         val existing = savedNetworks.find(ssid)
-        val unchanged = existing != null && existing.password == typed
+        val unchanged = existing != null && existing.secret == typed
 
         // Nothing to save while a stored network is in use.
         binding.saveNetworkButton.visibility =
@@ -543,7 +571,7 @@ class ProvisionActivity : AppCompatActivity() {
         val typed = binding.passInput.text.toString()
         val pass = if (typed.isEmpty()) selectedSavedPassword.orEmpty() else typed
         if (ssid.isEmpty() || pass.isEmpty()) return
-        savedNetworks.save(SavedNetwork(ssid, pass))
+        savedNetworks.save(SavedSecret(ssid, pass))
         log(getString(R.string.wifi_saved_toast_fmt, ssid))
         populateSsids(scanned)
         binding.forgetButton.visibility = View.VISIBLE
@@ -625,27 +653,133 @@ class ProvisionActivity : AppCompatActivity() {
         binding.ssidSpinner.setSelection(0)
     }
 
+    // ---- saved root passwords ------------------------------------------------
+
+    /**
+     * The SSID picker's twin, minus scanned entries: there is nothing to
+     * discover, only what the user chose to remember. Hidden when that is
+     * nothing. A stale selection (the entry was forgotten from the settings
+     * dialog) is dropped here rather than trusted until the next tap.
+     */
+    private fun populateRootPasswords() {
+        rootRows = savedRootPasswords.list()
+        binding.rootPassSpinner.visibility = if (rootRows.isEmpty()) View.GONE else View.VISIBLE
+
+        val current = selectedSavedRoot
+        val restored = rootRows.indexOfFirst { it.name == current?.name }
+        if (current != null) {
+            // Re-read in case the same name was re-saved with a new secret.
+            selectedSavedRoot = rootRows.getOrNull(restored)
+            if (restored < 0) {
+                binding.forgetRootPassButton.visibility = View.GONE
+                applyRootPassRowVisible()
+            }
+        }
+        if (rootRows.isEmpty()) {
+            binding.forgetRootPassButton.visibility = View.GONE
+            return
+        }
+
+        val labels = mutableListOf(getString(R.string.ssid_manual))
+        rootRows.mapTo(labels) { getString(R.string.networks_preferred_mark, it.name) }
+        rebuildingRootPicker = true
+        binding.rootPassSpinner.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item, labels
+        )
+        binding.rootPassSpinner.setSelection(if (restored >= 0) restored + 1 else 0)
+        binding.rootPassSpinner.post { rebuildingRootPicker = false }
+    }
+
+    private fun selectPreferredRootPassword() {
+        val name = savedRootPasswords.preferred() ?: return
+        selectRootPassword(name)
+    }
+
+    /** Puts the picker on [name]; the selection callback then hides the field. */
+    private fun selectRootPassword(name: String) {
+        val at = rootRows.indexOfFirst { it.name == name }
+        if (at >= 0) binding.rootPassSpinner.setSelection(at + 1)
+    }
+
+    private fun onRootPickerSelected(position: Int) {
+        val row = rootRows.getOrNull(position - 1)
+        if (row != null) binding.rootPassInput.setText("")
+        selectedSavedRoot = row
+        binding.forgetRootPassButton.visibility = if (row != null) View.VISIBLE else View.GONE
+        applyRootPassRowVisible()
+    }
+
+    /** As [applyPassRowVisible]: a saved choice replaces the field with a note. */
+    private fun applyRootPassRowVisible() {
+        val usingSaved = selectedSavedRoot != null
+        binding.rootPassRow.visibility = if (usingSaved) View.GONE else View.VISIBLE
+        binding.savedRootPassNote.visibility = if (usingSaved) View.VISIBLE else View.GONE
+        applyRootSaveVisible()
+    }
+
+    /**
+     * As [applySaveVisible]: present once something is typed, live only when
+     * that password is not already stored under some name.
+     */
+    private fun applyRootSaveVisible() {
+        val typed = binding.rootPassInput.text.toString()
+        val stored = savedRootPasswords.list().any { it.secret == typed }
+        binding.saveRootPassButton.visibility =
+            if (typed.isEmpty() || selectedSavedRoot != null) View.GONE else View.VISIBLE
+        binding.saveRootPassButton.isEnabled = typed.isNotEmpty() && !stored
+    }
+
+    /**
+     * Unlike a network, a root password has no name of its own, so saving one
+     * asks for a label first. The new entry is then selected, which is also
+     * what clears the typed password out of the field.
+     */
+    private fun saveCurrentRootPassword() {
+        val typed = binding.rootPassInput.text.toString()
+        if (typed.isEmpty()) return
+        addSecret(savedRootPasswords, rootUi, preset = typed) { selectRootPassword(it.name) }
+    }
+
+    private fun forgetSelectedRootPassword() {
+        val row = selectedSavedRoot ?: return
+        savedRootPasswords.forget(row.name)
+        selectedSavedRoot = null
+        log("Forgot saved root password ${row.name}")
+        populateRootPasswords()
+        binding.rootPassSpinner.setSelection(0)
+        applyRootPassRowVisible()
+    }
+
+    // ---- settings ------------------------------------------------------------
+
     private fun showSettingsDialog() {
         val view = layoutInflater.inflate(R.layout.dialog_provision_settings, null)
         val debugSwitch = view.findViewById<MaterialSwitch>(R.id.dlgDebugSwitch)
         val networkCount = view.findViewById<android.widget.TextView>(R.id.dlgNetworkCount)
         val manageNetworks = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.dlgManageNetworks)
+        val rootCount = view.findViewById<android.widget.TextView>(R.id.dlgRootCount)
+        val manageRoot = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.dlgManageRoot)
         val hostGroup = view.findViewById<RadioGroup>(R.id.dlgHostRadioGroup)
         val radioPortal = view.findViewById<RadioButton>(R.id.dlgRadioPortal)
         val radioApMode = view.findViewById<RadioButton>(R.id.dlgRadioApMode)
 
         debugSwitch.isChecked = prefs.getBoolean(PREF_DEBUG, false)
 
-        fun refreshNetworkRow() {
-            val n = savedNetworks.list().size
-            networkCount.text = if (n == 0) {
-                getString(R.string.settings_networks_none)
-            } else {
-                getString(R.string.settings_networks_count_fmt, n)
-            }
+        fun countText(n: Int) = if (n == 0) {
+            getString(R.string.settings_networks_none)
+        } else {
+            getString(R.string.settings_networks_count_fmt, n)
         }
+        fun refreshNetworkRow() { networkCount.text = countText(savedNetworks.list().size) }
+        fun refreshRootRow() { rootCount.text = countText(savedRootPasswords.list().size) }
         refreshNetworkRow()
-        manageNetworks.setOnClickListener { showSavedNetworks { refreshNetworkRow() } }
+        refreshRootRow()
+        manageNetworks.setOnClickListener {
+            showSavedSecrets(savedNetworks, networkUi) { refreshNetworkRow() }
+        }
+        manageRoot.setOnClickListener {
+            showSavedSecrets(savedRootPasswords, rootUi) { refreshRootRow() }
+        }
         (if (portalHost == PortalClient.AP_MODE_HOST) radioApMode else radioPortal).isChecked = true
 
         MaterialAlertDialogBuilder(this)
@@ -671,76 +805,145 @@ class ProvisionActivity : AppCompatActivity() {
     }
 
     /**
+     * Wording and the picker refresh for one kind of saved secret, so the
+     * review, add and forget dialogs below serve both kinds.
+     */
+    private class SecretUi(
+        @StringRes val title: Int,
+        @StringRes val addButton: Int,
+        @StringRes val addTitle: Int,
+        @StringRes val saveTitle: Int,
+        @StringRes val nameHint: Int,
+        @StringRes val secretHint: Int,
+        @StringRes val preferLabel: Int,
+        /** For log lines and complaints: "network", "root password". */
+        val noun: String,
+        val secretNoun: String,
+        val repopulate: () -> Unit,
+    )
+
+    private val networkUi = SecretUi(
+        title = R.string.settings_networks_title,
+        addButton = R.string.networks_add,
+        addTitle = R.string.networks_add_title,
+        saveTitle = R.string.networks_add_title,
+        nameHint = R.string.hint_ssid,
+        secretHint = R.string.hint_pass,
+        preferLabel = R.string.networks_prefer,
+        noun = "network",
+        secretNoun = "passphrase",
+        repopulate = { populateSsids(scanned) },
+    )
+
+    private val rootUi = SecretUi(
+        title = R.string.settings_root_passwords,
+        addButton = R.string.root_add,
+        addTitle = R.string.root_add_title,
+        saveTitle = R.string.root_save_title,
+        nameHint = R.string.hint_root_label,
+        secretHint = R.string.hint_rootpass,
+        preferLabel = R.string.root_prefer,
+        noun = "root password",
+        secretNoun = "password",
+        repopulate = { populateRootPasswords() },
+    )
+
+    /**
      * Review and remove what the app is holding. Without this the only way to
-     * meet a saved network is to stumble on it in the picker, and the only way
+     * meet a saved entry is to stumble on it in its picker, and the only way
      * to remove one is to select it first.
      */
-    private fun showSavedNetworks(onChanged: () -> Unit) {
-        val networks = savedNetworks.list()
-        val preferred = savedNetworks.preferred()
-        val labels = networks.map {
+    private fun showSavedSecrets(store: SecretStore, ui: SecretUi, onChanged: () -> Unit) {
+        val entries = store.list()
+        val preferred = store.preferred()
+        val labels = entries.map {
             getString(
-                if (it.ssid == preferred) R.string.networks_preferred_mark
+                if (it.name == preferred) R.string.networks_preferred_mark
                 else R.string.networks_plain_mark,
-                it.ssid,
+                it.name,
             )
         }.toTypedArray()
 
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.settings_networks_title)
-            .setItems(labels) { _, which -> networkActions(networks[which], onChanged) }
-            .setPositiveButton(R.string.networks_add) { _, _ -> addNetwork(onChanged) }
+            .setTitle(ui.title)
+            .setItems(labels) { _, which -> secretActions(store, ui, entries[which], onChanged) }
+            .setPositiveButton(ui.addButton) { _, _ -> addSecret(store, ui) { onChanged() } }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    /** Two useful things per network, so ask rather than assume one of them. */
-    private fun networkActions(target: SavedNetwork, onChanged: () -> Unit) {
-        val isPreferred = savedNetworks.preferred() == target.ssid
+    /** Two useful things per entry, so ask rather than assume one of them. */
+    private fun secretActions(
+        store: SecretStore,
+        ui: SecretUi,
+        target: SavedSecret,
+        onChanged: () -> Unit,
+    ) {
+        val isPreferred = store.preferred() == target.name
         MaterialAlertDialogBuilder(this)
-            .setTitle(target.ssid)
+            .setTitle(target.name)
             .setNeutralButton(
                 if (isPreferred) R.string.networks_prefer_clear else R.string.networks_prefer_set
             ) { _, _ ->
-                savedNetworks.setPreferred(if (isPreferred) null else target.ssid)
+                store.setPreferred(if (isPreferred) null else target.name)
                 log(
-                    if (isPreferred) "${target.ssid} will no longer be selected automatically"
-                    else "${target.ssid} will be selected automatically"
+                    if (isPreferred) "${target.name} will no longer be selected automatically"
+                    else "${target.name} will be selected automatically"
                 )
                 onChanged()
             }
             .setPositiveButton(R.string.btn_forget) { _, _ ->
-                savedNetworks.forget(target.ssid)
-                log("Forgot saved network ${target.ssid}")
-                populateSsids(scanned)
+                store.forget(target.name)
+                log("Forgot saved ${ui.noun} ${target.name}")
+                ui.repopulate()
                 onChanged()
             }
             .setNegativeButton(R.string.btn_cancel, null)
             .show()
     }
 
-    private fun addNetwork(onChanged: () -> Unit) {
-        val view = layoutInflater.inflate(R.layout.dialog_add_network, null)
-        val ssidField = view.findViewById<android.widget.EditText>(R.id.addSsid)
-        val passField = view.findViewById<android.widget.EditText>(R.id.addPass)
+    /**
+     * Name and secret, or with [preset] just the name: that is the main form's
+     * Save button, where the secret is already typed and only needs a name.
+     */
+    private fun addSecret(
+        store: SecretStore,
+        ui: SecretUi,
+        preset: String? = null,
+        onSaved: (SavedSecret) -> Unit,
+    ) {
+        val view = layoutInflater.inflate(R.layout.dialog_add_secret, null)
+        val nameField = view.findViewById<android.widget.EditText>(R.id.addName)
+        val secretField = view.findViewById<android.widget.EditText>(R.id.addSecret)
         val preferBox = view.findViewById<android.widget.CheckBox>(R.id.addPreferred)
+        nameField.setHint(ui.nameHint)
+        secretField.setHint(ui.secretHint)
+        preferBox.setText(ui.preferLabel)
+        if (preset != null) {
+            secretField.setText(preset)
+            secretField.visibility = View.GONE
+        }
 
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.networks_add_title)
+            .setTitle(if (preset == null) ui.addTitle else ui.saveTitle)
             .setView(view)
             .setNegativeButton(R.string.btn_cancel, null)
             .setPositiveButton(R.string.btn_save) { _, _ ->
-                val ssid = ssidField.text.toString().trim()
-                val pass = passField.text.toString()
-                if (ssid.isEmpty() || pass.isEmpty()) {
-                    warn("A network needs both a name and a passphrase.")
+                val name = nameField.text.toString().trim()
+                val secret = secretField.text.toString()
+                if (name.isEmpty() || secret.isEmpty()) {
+                    warn(
+                        if (preset != null) "Give this ${ui.noun} a name."
+                        else "A ${ui.noun} needs both a name and a ${ui.secretNoun}."
+                    )
                     return@setPositiveButton
                 }
-                savedNetworks.save(SavedNetwork(ssid, pass))
-                if (preferBox.isChecked) savedNetworks.setPreferred(ssid)
-                log("Saved $ssid")
-                populateSsids(scanned)
-                onChanged()
+                val saved = SavedSecret(name, secret)
+                store.save(saved)
+                if (preferBox.isChecked) store.setPreferred(name)
+                log("Saved ${ui.noun} $name")
+                ui.repopulate()
+                onSaved(saved)
             }
             .show()
     }
@@ -892,6 +1095,7 @@ class ProvisionActivity : AppCompatActivity() {
             binding.ssidSpinner, binding.ssidInput, binding.passInput, binding.passToggle,
             binding.saveNetworkButton, binding.forgetButton,
             binding.hostnameInput, binding.rootPassInput, binding.rootPassToggle,
+            binding.rootPassSpinner, binding.saveRootPassButton, binding.forgetRootPassButton,
             binding.pubkeyInput, binding.pubkeyPickButton,
             binding.timezoneSpinner, binding.apModeSwitch, binding.deviceHeader,
         ).forEach { it.isEnabled = enabled }

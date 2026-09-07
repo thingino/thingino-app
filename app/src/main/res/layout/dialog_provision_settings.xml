@@ -91,6 +91,47 @@
             style="@style/Widget.Thingino.Button.Outlined" />
     </LinearLayout>
 
+    <!-- Saved root passwords, the same review and removal as the networks. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_root_passwords"
+                android:textColor="@color/on_surface" />
+
+            <TextView
+                android:id="@+id/dlgRootCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dlgManageRoot"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:text="@string/settings_networks_manage"
+            android:textSize="12sp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            style="@style/Widget.Thingino.Button.Outlined" />
+    </LinearLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

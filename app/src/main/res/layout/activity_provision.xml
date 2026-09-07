@@ -383,7 +383,18 @@
                     android:importantForAutofill="no"
                     android:textSize="14sp" />
 
+                <!-- Root passwords the user chose to remember, the same picker
+                     as the SSID one: hidden until there is something to offer,
+                     and a saved choice replaces the field below with a note. -->
+                <Spinner
+                    android:id="@+id/rootPassSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
                 <LinearLayout
+                    android:id="@+id/rootPassRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -408,6 +419,57 @@
                         android:src="@drawable/ic_visibility"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/show_password" />
+                </LinearLayout>
+
+                <!-- Save, or the note plus Forget, laid out as on the Wi-Fi card. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/saveRootPassButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/root_save"
+                        android:textSize="12sp"
+                        android:visibility="gone"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        style="@style/Widget.Thingino.Button.Outlined.Accent" />
+
+                    <TextView
+                        android:id="@+id/savedRootPassNote"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/hint_rootpass_saved"
+                        android:textSize="13sp"
+                        android:textColor="@color/on_surface_variant"
+                        android:visibility="gone" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/forgetRootPassButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:text="@string/btn_forget"
+                        android:textSize="12sp"
+                        android:visibility="gone"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        style="@style/Widget.Thingino.Button.Outlined" />
                 </LinearLayout>
 
                 <LinearLayout
