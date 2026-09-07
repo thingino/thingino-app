@@ -24,10 +24,13 @@
     android:fillViewport="true"
     android:scrollbars="none">
 
+<!-- clipChildren is off here and down to the send button's halo, which
+     bleeds past the button and would otherwise be cut at each parent's edge. -->
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:clipChildren="false">
 
     <!-- Header -->
     <LinearLayout
@@ -121,7 +124,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="10dp">
+        android:layout_marginBottom="10dp"
+        android:clipChildren="false">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/findButton"
@@ -133,16 +137,44 @@
             android:textSize="16sp"
             style="@style/Widget.Thingino.Button.Outlined.Accent" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/provisionButton"
+        <!-- The send button on its halo, which breathes while the button is
+             live (a camera answered, nothing sent yet): the cue that this is
+             the moment to fill in the form. ProvisionActivity.setProvisionLive
+             drives both.
+
+             The halo's bounds reach GlowView.BLEED_DP past the button's visible
+             face, hence the negative margins. The face is 4dp inside the
+             button's 52dp on top and bottom, Material 3's own button insets,
+             so those two margins are 4dp shorter. The wrapper takes the
+             button's height explicitly: with wrap_content a match_parent
+             child is offered the whole remaining screen and takes it. -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="@string/btn_provision"
-            android:textSize="16sp"
-            android:enabled="false"
-            style="@style/Widget.Thingino.Button.Outlined.Accent" />
+            android:clipChildren="false">
+
+            <com.thingino.app.GlowView
+                android:id="@+id/provisionGlow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="-18dp"
+                android:layout_marginEnd="-18dp"
+                android:layout_marginTop="-14dp"
+                android:layout_marginBottom="-14dp"
+                android:alpha="0"
+                android:importantForAccessibility="no" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/provisionButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="@string/btn_provision"
+                android:textSize="16sp"
+                android:enabled="false"
+                style="@style/Widget.Thingino.Button.Outlined.Accent" />
+        </FrameLayout>
     </LinearLayout>
 
     <!-- Wi-Fi credentials. Expanded by default: this is the one card the user

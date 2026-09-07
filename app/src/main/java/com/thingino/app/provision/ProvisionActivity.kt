@@ -4,6 +4,8 @@ import com.thingino.app.R
 import com.thingino.app.BuildConfig
 
 import android.Manifest
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -12,6 +14,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.RadioButton
@@ -52,6 +55,13 @@ class ProvisionActivity : AppCompatActivity() {
      */
     private var provisioned = false
     private var previewLoaded = false
+
+    /**
+     * Breathes the halo behind the send button. Runs exactly while that button
+     * is live and the screen is in front of the user, see [setProvisionLive].
+     */
+    private lateinit var glow: ObjectAnimator
+    private var screenVisible = false
 
     /** Held past startPreview so the WHIP session can be torn down on exit. */
     private var whip: WhipClient? = null
@@ -110,6 +120,12 @@ class ProvisionActivity : AppCompatActivity() {
         savedNetworks = SavedNetworks(this)
 
         binding.versionText.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME)
+        glow = ObjectAnimator.ofFloat(binding.provisionGlow, View.ALPHA, GLOW_MIN, GLOW_MAX).apply {
+            duration = GLOW_HALF_PERIOD_MS
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+        }
         setupTimezones()
         setupCollapsibleCard()
         applyDebugVisible()
@@ -158,6 +174,18 @@ class ProvisionActivity : AppCompatActivity() {
         log("Ready. The camera must be in portal mode, which lasts 10 minutes from boot.")
     }
 
+    override fun onStart() {
+        super.onStart()
+        screenVisible = true
+        applyGlow()
+    }
+
+    override fun onStop() {
+        screenVisible = false
+        applyGlow()
+        super.onStop()
+    }
+
     override fun onDestroy() {
         val session = whip
         if (session == null) {
@@ -194,6 +222,10 @@ class ProvisionActivity : AppCompatActivity() {
             setFormEnabled(true)
         }
 
+        // A client only exists once its camera has answered: a find that fails
+        // part-way must not leave the send button live on a stale or dead one.
+        client = null
+        cameraInfo = null
         busy(true, getString(R.string.status_searching))
         try {
             log("Requesting a ${PortalWifi.SSID_PREFIX}* network via the system picker...")
@@ -202,9 +234,8 @@ class ProvisionActivity : AppCompatActivity() {
             log("Joined. Binding requests to the local-only network.")
 
             val c = PortalClient(network, portalHost)
-            client = c
-
             val info = c.getInfo()
+            client = c
             cameraInfo = info
             setStatus(getString(R.string.status_connected), R.color.success)
             binding.cameraText.text = info.hostname
@@ -225,7 +256,7 @@ class ProvisionActivity : AppCompatActivity() {
             log("Image:  ${info.imageId}")
             log("Build:  ${info.buildId}")
 
-            binding.provisionButton.isEnabled = true
+            setProvisionLive(true)
             binding.previewCard.visibility = View.VISIBLE
 
             log("Asking the camera which networks it can hear...")
@@ -728,7 +759,32 @@ class ProvisionActivity : AppCompatActivity() {
 
         binding.findButton.isEnabled = !busy
         binding.discoverButton.isEnabled = !busy
-        binding.provisionButton.isEnabled = !busy && client != null && !provisioned
+        setProvisionLive(!busy && client != null && !provisioned)
+    }
+
+    /**
+     * The send button is live when a camera has answered, nothing has been sent
+     * to it yet and no request is in flight. The halo behind it says so from
+     * across the room: this is the moment to fill in the form.
+     */
+    private fun setProvisionLive(live: Boolean) {
+        binding.provisionButton.isEnabled = live
+        applyGlow()
+    }
+
+    private fun applyGlow() {
+        val on = binding.provisionButton.isEnabled && screenVisible
+        when {
+            // Animations off in the system settings: a steady halo, still a cue.
+            !ValueAnimator.areAnimatorsEnabled() -> {
+                binding.provisionGlow.alpha = if (on) GLOW_STEADY else 0f
+            }
+            on && !glow.isStarted -> glow.start()
+            !on && glow.isStarted -> {
+                glow.cancel()
+                binding.provisionGlow.alpha = 0f
+            }
+        }
     }
 
     private fun togglePreview() {
@@ -872,5 +928,10 @@ class ProvisionActivity : AppCompatActivity() {
         private const val MAX_PUBKEY_BYTES = 16 * 1024
         private const val PREVIEW_URL =
             "https://appassets.androidplatform.net/assets/preview.html"
+
+        private const val GLOW_MIN = 0.15f
+        private const val GLOW_MAX = 1f
+        private const val GLOW_STEADY = 0.6f
+        private const val GLOW_HALF_PERIOD_MS = 900L
     }
 }
