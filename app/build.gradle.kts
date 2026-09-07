@@ -18,6 +18,29 @@ val computedVersionName: String = run {
     }
 }
 
+// versionCode from the same tag, since updaters compare that number and not
+// versionName: two decimal digits per field plus a pre-release slot, so
+// v0.4.0 -> 40099. A final release takes 99 in that slot and pre-releases
+// fill 0..98 in alpha < beta < rc order, so v1.0.0-rc.2 -> 1000062 sorts
+// below v1.0.0 -> 1000099 and above v1.0.0-alpha.1 -> 1000001. Releases up
+// to v0.4.0 all shipped as 1 and looked identical to updaters.
+val computedVersionCode: Int = run {
+    val m = Regex("""^(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z]*)\.?(\d*))?""").find(computedVersionName)
+        ?: throw GradleException("versionName '$computedVersionName' is not MAJOR.MINOR.PATCH")
+    val (major, minor, patch) = m.groupValues.subList(1, 4).map { it.toInt() }
+    if (minor > 99 || patch > 99) {
+        throw GradleException("versionName '$computedVersionName': MINOR and PATCH must stay below 100")
+    }
+    val n = m.groups[5]?.value?.toIntOrNull() ?: 0
+    val pre = when (m.groups[4]?.value?.lowercase()) {
+        null -> 99                       // no suffix: final release
+        "rc" -> 60 + n.coerceAtMost(38)
+        "beta" -> 30 + n.coerceAtMost(29)
+        else -> n.coerceAtMost(29)       // alpha, or an unknown word
+    }
+    ((major * 100 + minor) * 100 + patch) * 100 + pre
+}
+
 // ---------------------------------------------------------------------------
 // Native dependencies from thingino-dfu-rs
 //
@@ -107,7 +130,7 @@ android {
         // works fine for them.
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        versionCode = computedVersionCode
         versionName = computedVersionName
 
         ndk {
