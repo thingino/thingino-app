@@ -38,7 +38,7 @@ ANDROID_NDK_HOME=/path/to/ndk cargo xtask package --target android
 
 # here
 ./gradlew assembleDebug \
-  -PlibtdfuFile=../thingino-dfu-rs/dist/libtdfu-android-2.0.0.tar.gz
+  -PlibtdfuFile=../thingino-dfu-rs/dist/libtdfu-android-2.0.1.tar.gz
 ```
 
 Release builds need the signing keystore at `thingino-release.jks` plus
