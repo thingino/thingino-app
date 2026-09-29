@@ -253,6 +253,7 @@ class ProvisionActivity : AppCompatActivity() {
         // part-way must not leave the send button live on a stale or dead one.
         client = null
         cameraInfo = null
+        binding.cameraFields.visibility = View.VISIBLE
         busy(true, getString(R.string.status_searching))
         try {
             log("Requesting a ${PortalWifi.SSID_PREFIX}* network via the system picker...")
@@ -282,6 +283,10 @@ class ProvisionActivity : AppCompatActivity() {
             )
             log("Image:  ${info.imageId}")
             log("Build:  ${info.buildId}")
+            if (info.wifiOnly) {
+                binding.cameraFields.visibility = View.GONE
+                log("Wi-Fi only: no root password, SSH key, time zone or AP mode to set.")
+            }
 
             setProvisionLive(true)
             binding.previewCard.visibility = View.VISIBLE
@@ -326,7 +331,8 @@ class ProvisionActivity : AppCompatActivity() {
             warn("Enter the passphrase for $ssid.")
             return@launch
         }
-        if (rootPass.isEmpty()) {
+        val wifiOnly = cameraInfo?.wifiOnly == true
+        if (rootPass.isEmpty() && !wifiOnly) {
             warn("Root password is empty, please set a root password.")
             return@launch
         }
@@ -342,7 +348,7 @@ class ProvisionActivity : AppCompatActivity() {
                 pubkey = binding.pubkeyInput.text.toString().trim(),
                 apMode = binding.apModeSwitch.isChecked,
             )
-            c.save(req, hashed = cameraInfo?.acceptsHashedSecrets == true)
+            c.save(req, hashed = cameraInfo?.acceptsHashedSecrets == true, wifiOnly = wifiOnly)
 
             log("Configuration accepted. Camera reboots in 2 seconds.")
             log(

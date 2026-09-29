@@ -21,9 +21,16 @@ data class CameraInfo(
     /** What this firmware accepts. Absent on cameras predating the field. */
     val features: List<String> = emptyList(),
 ) {
+    /**
+     * A device that takes the network and the hostname alone: no root account,
+     * time zone, SSH key or access-point mode (the dev backpack).
+     */
+    val wifiOnly: Boolean
+        get() = PortalClient.FEATURE_WIFI_ONLY in features
+
     val acceptsHashedSecrets: Boolean
         get() = PortalClient.FEATURE_PSK in features &&
-            PortalClient.FEATURE_ROOT_HASH in features
+            (PortalClient.FEATURE_ROOT_HASH in features || wifiOnly)
 }
 
 data class ScannedNetwork(
@@ -114,30 +121,12 @@ class PortalClient(
      * looking for the camera on the target network afterwards, or by checking
      * whether its THINGINO-* AP reappeared.
      */
-    suspend fun save(req: ProvisionRequest, hashed: Boolean): Unit = withContext(Dispatchers.IO) {
-        val body = buildString {
-            append("hostname=").append(enc(req.hostname))
-            append("&wlan_ssid=").append(enc(req.wlanSsid))
-            // Derive locally when the camera says it can take the derived
-            // forms, so neither secret is on the wire in a reusable shape.
-            // Only when advertised: older firmware ignores unknown fields and
-            // would configure Wi-Fi with an empty passphrase while still
-            // reporting success.
-            if (hashed) {
-                append("&wlan_psk=")
-                    .append(enc(PortalCrypto.wpaPsk(req.wlanSsid, req.wlanPass)))
-                append("&rootpass_hash=")
-                    .append(enc(PortalCrypto.sha512Crypt(req.rootPass)))
-            } else {
-                append("&wlan_pass=").append(enc(req.wlanPass))
-                append("&rootpass=").append(enc(req.rootPass))
-            }
-            append("&timezone=").append(enc(req.timezone))
-            append("&rootpkey=").append(enc(req.pubkey))
-            if (req.apMode) append("&wlan_ap=true")
-        }
-
-        val text = post("action=save", body)
+    suspend fun save(
+        req: ProvisionRequest,
+        hashed: Boolean,
+        wifiOnly: Boolean = false,
+    ): Unit = withContext(Dispatchers.IO) {
+        val text = post("action=save", formBody(req, hashed, wifiOnly))
         val json = JSONObject(text)
         if (!json.optBoolean("success", false)) {
             throw PortalException(json.optString("error", "Camera rejected the configuration."))
@@ -230,12 +219,6 @@ class PortalClient(
         if (has("error")) throw PortalException(optString("error"))
     }
 
-    // api.cgi decodes with `sed 's/+/ /g; s/%XX/\xXX/g'` piped through
-    // `printf '%b'`, so standard form encoding round-trips. The one rough edge
-    // is that printf %b also expands backslash escapes, so a passphrase
-    // containing a literal backslash sequence can arrive altered.
-    private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8")
-
     private var chosen: String? = null
 
     /** True once a request has completed over TLS. */
@@ -254,6 +237,36 @@ class PortalClient(
     companion object {
         const val FEATURE_PSK = "wlan_psk"
         const val FEATURE_ROOT_HASH = "rootpass_hash"
+        const val FEATURE_WIFI_ONLY = "wifi_only"
+
+        /**
+         * The save form. Derived secrets only when the device advertises them:
+         * older firmware ignores unknown fields and would configure Wi-Fi with an
+         * empty passphrase while still reporting success. A wifi-only device is
+         * sent the network and the hostname and nothing a camera alone takes.
+         */
+        internal fun formBody(req: ProvisionRequest, hashed: Boolean, wifiOnly: Boolean): String {
+            val fields = mutableListOf("hostname" to req.hostname, "wlan_ssid" to req.wlanSsid)
+            if (hashed) {
+                fields += "wlan_psk" to PortalCrypto.wpaPsk(req.wlanSsid, req.wlanPass)
+                if (!wifiOnly) fields += "rootpass_hash" to PortalCrypto.sha512Crypt(req.rootPass)
+            } else {
+                fields += "wlan_pass" to req.wlanPass
+                if (!wifiOnly) fields += "rootpass" to req.rootPass
+            }
+            if (!wifiOnly) {
+                fields += "timezone" to req.timezone
+                fields += "rootpkey" to req.pubkey
+                if (req.apMode) fields += "wlan_ap" to "true"
+            }
+            return fields.joinToString("&") { (name, value) -> "$name=${enc(value)}" }
+        }
+
+        // api.cgi decodes with `sed 's/+/ /g; s/%XX/\xXX/g'` piped through
+        // `printf '%b'`, so standard form encoding round-trips. The one rough edge
+        // is that printf %b also expands backslash escapes, so a passphrase
+        // containing a literal backslash sequence can arrive altered.
+        private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8")
 
         /** Portal mode. The camera's own AP mode uses 100.64.1.1 instead. */
         const val PORTAL_HOST = "172.16.0.1"

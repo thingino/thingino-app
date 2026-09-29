@@ -383,164 +383,175 @@
                     android:importantForAutofill="no"
                     android:textSize="14sp" />
 
-                <!-- Root passwords the user chose to remember, the same picker
-                     as the SSID one: hidden until there is something to offer,
-                     and a saved choice replaces the field below with a note. -->
-                <Spinner
-                    android:id="@+id/rootPassSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:visibility="gone" />
-
+                <!-- What only a camera takes: a root password, an SSH key, a time
+                     zone and access-point mode. Hidden when get_info advertises
+                     wifi_only (the dev backpack), whose save takes the network and
+                     the hostname alone. -->
                 <LinearLayout
-                    android:id="@+id/rootPassRow"
+                    android:id="@+id/cameraFields"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
+                    android:orientation="vertical">
 
-                    <EditText
-                        android:id="@+id/rootPassInput"
-                        android:layout_width="0dp"
-                        android:layout_height="46dp"
-                        android:layout_weight="1"
-                        android:hint="@string/hint_rootpass"
-                        android:inputType="textPassword"
-                        android:autofillHints="newPassword"
-                        android:textSize="14sp" />
-
-                    <ImageButton
-                        android:id="@+id/rootPassToggle"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="4dp"
-                        android:src="@drawable/ic_visibility"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/show_password" />
-                </LinearLayout>
-
-                <!-- Save, or the note plus Forget, laid out as on the Wi-Fi card. -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/saveRootPassButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="34dp"
-                        android:layout_marginEnd="8dp"
-                        android:text="@string/root_save"
-                        android:textSize="12sp"
-                        android:visibility="gone"
-                        android:minWidth="0dp"
-                        android:minHeight="0dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        style="@style/Widget.Thingino.Button.Outlined.Accent" />
-
-                    <TextView
-                        android:id="@+id/savedRootPassNote"
-                        android:layout_width="wrap_content"
+                    <!-- Root passwords the user chose to remember, the same picker
+                         as the SSID one: hidden until there is something to offer,
+                         and a saved choice replaces the field below with a note. -->
+                    <Spinner
+                        android:id="@+id/rootPassSpinner"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:text="@string/hint_rootpass_saved"
-                        android:textSize="13sp"
-                        android:textColor="@color/on_surface_variant"
+                        android:layout_marginTop="8dp"
                         android:visibility="gone" />
 
-                    <Space
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/forgetRootPassButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="34dp"
-                        android:text="@string/btn_forget"
-                        android:textSize="12sp"
-                        android:visibility="gone"
-                        android:minWidth="0dp"
-                        android:minHeight="0dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        style="@style/Widget.Thingino.Button.Outlined" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
-
-                    <EditText
-                        android:id="@+id/pubkeyInput"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="@string/hint_pubkey"
-                        android:inputType="textMultiLine"
-                        android:maxLines="2"
-                        android:importantForAutofill="no"
-                        android:fontFamily="monospace"
-                        android:textSize="12sp" />
-
-                    <ImageButton
-                        android:id="@+id/pubkeyPickButton"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="4dp"
-                        android:src="@drawable/ic_folder_open"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/hint_pubkey_pick" />
-                </LinearLayout>
-
-                <Spinner
-                    android:id="@+id/timezoneSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="12dp">
-
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:id="@+id/rootPassRow"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
 
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/device_ap_mode"
-                            android:textColor="@color/on_surface" />
+                        <EditText
+                            android:id="@+id/rootPassInput"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_weight="1"
+                            android:hint="@string/hint_rootpass"
+                            android:inputType="textPassword"
+                            android:autofillHints="newPassword"
+                            android:textSize="14sp" />
 
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/device_ap_mode_desc"
-                            android:textSize="12sp"
-                            android:textColor="@color/on_surface_variant" />
+                        <ImageButton
+                            android:id="@+id/rootPassToggle"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="4dp"
+                            android:src="@drawable/ic_visibility"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/show_password" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/apModeSwitch"
-                        android:layout_width="wrap_content"
+                    <!-- Save, or the note plus Forget, laid out as on the Wi-Fi card. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:thumbTint="@color/switch_thumb_tint"
-                        app:trackTint="@color/switch_track_tint"
-                        app:trackDecorationTint="@color/switch_track_decoration_tint" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/saveRootPassButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="8dp"
+                            android:text="@string/root_save"
+                            android:textSize="12sp"
+                            android:visibility="gone"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Thingino.Button.Outlined.Accent" />
+
+                        <TextView
+                            android:id="@+id/savedRootPassNote"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:text="@string/hint_rootpass_saved"
+                            android:textSize="13sp"
+                            android:textColor="@color/on_surface_variant"
+                            android:visibility="gone" />
+
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/forgetRootPassButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:text="@string/btn_forget"
+                            android:textSize="12sp"
+                            android:visibility="gone"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Thingino.Button.Outlined" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <EditText
+                            android:id="@+id/pubkeyInput"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/hint_pubkey"
+                            android:inputType="textMultiLine"
+                            android:maxLines="2"
+                            android:importantForAutofill="no"
+                            android:fontFamily="monospace"
+                            android:textSize="12sp" />
+
+                        <ImageButton
+                            android:id="@+id/pubkeyPickButton"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="4dp"
+                            android:src="@drawable/ic_folder_open"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/hint_pubkey_pick" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/timezoneSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/device_ap_mode"
+                                android:textColor="@color/on_surface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/device_ap_mode_desc"
+                                android:textSize="12sp"
+                                android:textColor="@color/on_surface_variant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/apModeSwitch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint"
+                            app:trackDecorationTint="@color/switch_track_decoration_tint" />
+                    </LinearLayout>
                 </LinearLayout>
 
             </LinearLayout>
