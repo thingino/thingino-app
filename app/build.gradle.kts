@@ -53,7 +53,7 @@ val computedVersionCode: Int = run {
 // unreleased libtdfu without cutting a tag. Otherwise it downloads the pinned
 // release.
 // ---------------------------------------------------------------------------
-val libtdfuVersion = providers.gradleProperty("libtdfuVersion").getOrElse("2.0.1")
+val libtdfuVersion = providers.gradleProperty("libtdfuVersion").getOrElse("2.1.0")
 val libtdfuRepo = providers.gradleProperty("libtdfuRepo").getOrElse("thingino/thingino-dfu-rs")
 val libtdfuFile = providers.gradleProperty("libtdfuFile").orNull?.takeIf { it.isNotBlank() }
 
