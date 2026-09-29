@@ -285,11 +285,13 @@ class ProvisionActivity : AppCompatActivity() {
             log("Build:  ${info.buildId}")
             if (info.wifiOnly) {
                 binding.cameraFields.visibility = View.GONE
-                log("Wi-Fi only: no root password, SSH key, time zone or AP mode to set.")
+                log("Wi-Fi only: no root password, SSH key, time zone, AP mode or live preview.")
             }
 
             setProvisionLive(true)
-            binding.previewCard.visibility = View.VISIBLE
+            // A wifi-only device has no video to preview, and the card is the only way
+            // a preview starts.
+            binding.previewCard.visibility = if (info.wifiOnly) View.GONE else View.VISIBLE
 
             log("Asking the camera which networks it can hear...")
             scanned = c.scanNetworks()

@@ -560,7 +560,8 @@
 
     <!-- Live preview. raptor's rwd serves a self-contained WebRTC viewer, so the
          page does the signalling and no media stack is needed here. Hidden
-         until a camera answers, and stays hidden on firmware without rwd. -->
+         until a camera answers, and stays hidden on firmware without rwd and on a
+         wifi_only device (the dev backpack), which has no video. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/previewCard"
         android:layout_width="match_parent"
